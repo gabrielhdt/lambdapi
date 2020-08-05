@@ -147,19 +147,19 @@ let qsym : (Syntax.p_module_path * string) Term.t =
         (* Parse with [Parser] up to the symbol id, which can’t be parsed by
            [Parser]. *)
         let ind = String.index s '#' in
-        match Parser.parse_qident (String.sub s 0 (ind - 1)) with
+        match Lplisp.parse_qident (String.sub s 0 (ind - 1)) with
         | Ok({elt=(mp,last); _}) -> (* [last] is the last module name. *)
             (* Get the [id] manually *)
             let id = String.sub s ind (String.length s - ind) in
             Ok(mp @ [(last, false)], id)
-        | Error(p) ->
-            let msg = Format.sprintf "Parse error at %s." (Pos.to_string p) in
+        | Error(s) ->
+            let msg = Format.sprintf "Parse error [%s]." s in
             Error(`Msg(msg))
       else
-        match Parser.parse_qident s with
+        match Lplisp.parse_qident s with
         | Ok({elt; _}) -> Ok(elt)
-        | Error(p) ->
-            let msg = Format.sprintf "Parse error at %s." (Pos.to_string p) in
+        | Error(msg) ->
+            let msg = Format.sprintf "Parse error at %s." msg in
             Error(`Msg(msg))
     in
     let print fmt qid = Pretty.pp_qident fmt (Pos.none qid) in

@@ -232,7 +232,7 @@ let module_to_file : Path.t -> file_path = fun mp ->
   log_file "[%a] points to base name [%s]." Path.pp mp path; path
 
 (** [src_extension] is the expected extension for source files. *)
-let src_extension : string = ".lp"
+let src_extension : string = ".lplisp"
 
 (** [obj_extension] is the expected extension for binary (object) files. *)
 let obj_extension : string = ".lpo"

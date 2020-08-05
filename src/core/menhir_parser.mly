@@ -4,12 +4,13 @@ open Timed
 open Pos
 open Syntax
 open Legacy_lexer
-open Parser
 
 (** {b NOTE} we maintain the invariant described in the [Parser] module: every
     error should have an attached position.  We do not open [Console] to avoid
     calls to [Console.fatal] and [Console.fatal_no_pos].  In case of an error,
     the [parser_fatal] function should be used instead. *)
+
+let do_require _ _ : unit = assert false
 
 (** [get_args t] decomposes the parser level term [t] into a spine [(h,args)],
     when [h] is the term at the head of the application and [args] is the list
@@ -204,7 +205,7 @@ let build_config : Pos.pos -> string -> string option -> eval_config =
     | (i     , Some "WHNF") -> config (Some(i)) WHNF
     | (i     , None       ) -> config (Some(i)) NONE
     | (_     , _          ) -> raise Exit (* captured below *)
-  with _ -> parser_fatal loc "Invalid command configuration."
+  with _ -> Console.fatal (Some loc) "Invalid command configuration."
 %}
 
 %token EOF

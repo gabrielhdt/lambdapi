@@ -10,8 +10,11 @@ open Console
 open Pos
 open Syntax
 
+let is_kw : string -> bool = fun s ->
+  s = "lambda" || s = "prod" || s = "symbol"
+
 let pp_ident : ident pp = fun oc id ->
-  if Parser.KW.mem id.elt then
+  if is_kw id.elt then
     fatal id.pos "Identifier [%s] is a Lambdapi keyword." id.elt;
   Format.pp_print_string oc id.elt
 
@@ -21,7 +24,7 @@ let pp_arg_ident : ident option pp = fun oc id ->
   | None     -> Format.pp_print_string oc "_"
 
 let pp_path_elt : Pos.popt -> (string * bool) pp = fun pos oc (s,b) ->
-  if not b && Parser.KW.mem s then
+  if not b && is_kw s then
     fatal pos "Module path member [%s] is a Lambdapi keyword." s;
   if b then Format.fprintf oc "{|%s|}" s else Format.pp_print_string oc s
 
@@ -43,8 +46,9 @@ let pp_modifier : p_modifier loc pp = fun oc {elt; _} ->
   | P_prop(Const) -> Format.pp_print_string oc "constant "
   | P_prop(Injec) -> Format.pp_print_string oc "injective "
 
+type prio = PAtom | PFunc | PAppl
+
 let rec pp_p_term : p_term pp = fun oc t ->
-  let open Parser in (* for PAtom, PAppl and PFunc *)
   let out fmt = Format.fprintf oc fmt in
   let empty_context = ref true in
   let rec pp p _ t =

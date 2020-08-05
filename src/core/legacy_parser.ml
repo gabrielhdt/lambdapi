@@ -19,7 +19,7 @@ let parse_lexbuf : string -> Lexing.lexbuf -> Syntax.ast = fun fname lexbuf ->
   | Menhir_parser.Error ->
       let loc = Lexing.(lexbuf.lex_start_p) in
       let loc = Legacy_lexer.locate (loc, loc) in
-      Parser.parser_fatal loc "Unexpected token [%s]." (Lexing.lexeme lexbuf)
+      Console.fatal (Some loc) "Unexpected token [%s]." (Lexing.lexeme lexbuf)
 
 let parse_file : string -> Syntax.ast = fun fname ->
   let ic = open_in fname in

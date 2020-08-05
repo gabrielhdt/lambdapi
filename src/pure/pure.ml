@@ -30,7 +30,7 @@ let parse_text : state -> string -> string -> Command.t list * state =
     Time.restore t;
     let ast =
       if old_syntax then Legacy_parser.parse_string fname s
-      else Parser.parse_string fname s
+      else Lplisp.parse_string (* fname *) s
     in
     (ast, (Time.save (), st))
   with
