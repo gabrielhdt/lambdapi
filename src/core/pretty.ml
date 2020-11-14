@@ -12,6 +12,15 @@ open Console
 open Pos
 open Syntax
 
+type  ast         = p_term Syntax.ast
+and   p_command   = p_term Syntax.p_command
+and   p_arg       = p_term Syntax.p_arg
+and   p_rule      = p_term Syntax.p_rule
+and   p_rw_patt   = p_term Syntax.p_rw_patt
+and   p_tactic    = p_term Syntax.p_tactic
+and   p_assertion = p_term Syntax.p_assertion
+and   p_query     = p_term Syntax.p_query
+
 let pp_ident : ident pp = fun oc id ->
   if Parser.KW.mem id.elt then
     fatal id.pos "Identifier [%s] is a Lambdapi keyword." id.elt;
@@ -125,7 +134,7 @@ let pp_p_rule : string -> p_rule pp = fun kw oc r ->
   let (lhs, rhs) = r.elt in
   Format.fprintf oc "@[<hov 3>%s %a ↪ %a@]@?" kw pp_p_term lhs pp_p_term rhs
 
-let pp_p_inductive : string -> p_inductive pp = fun kw oc i ->
+let pp_p_inductive : string -> p_term p_inductive pp = fun kw oc i ->
   let (s, t, tl) = i.elt in
   Format.fprintf oc "@[<hov 2>]%s %a" kw pp_ident s;
   Format.fprintf oc " :@ @[<hov>%a@] ≔@ \n  " pp_p_term t;
