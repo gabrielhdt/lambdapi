@@ -5,6 +5,19 @@
 open Terms
 open Syntax
 
+
+(** Representation of an identifier. *)
+type ident = string
+
+(** Representation of a possibly qualified identifier *)
+type qident = p_module_path * string
+
+(** Representation of an unlocated unary operator. *)
+type unop = string * priority * qident
+
+(** Representation of an unlocatied binary operator. *)
+type binop = string * assoc * priority * qident
+
 (** Representation of a function argument. The boolean is true if
     the argument is marked as implicit (i.e., between curly braces). *)
 type arg = ident option list * term option * bool
@@ -93,7 +106,7 @@ type config =
   | Config_unif_rule of rule
   (** Unification hint declarations. *)
 
-(** Representation of a single command. *)
+(** Representation of a statement. *)
 type statement = ident * arg list * term
 
 (** Representation of a single command. *)
