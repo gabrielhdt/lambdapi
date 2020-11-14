@@ -175,9 +175,9 @@ type 'term p_query_aux =
   (** Sets the boolean flag registered under the given name (if any). *)
   | P_query_assert    of bool * 'term p_assertion
   (** Assertion (must fail if boolean is [true]). *)
-  | P_query_infer     of p_term * eval_config
+  | P_query_infer     of 'term * eval_config
   (** Type inference command. *)
-  | P_query_normalize of p_term * eval_config
+  | P_query_normalize of 'term * eval_config
   (** Normalisation command. *)
   | P_query_prover    of string
   (** Set the prover to use inside a proof. *)
