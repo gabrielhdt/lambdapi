@@ -5,6 +5,16 @@ open Lplib.Base
 
 open Pos
 
+(** Set of identifier characters. *)
+let id_charset = Earley_core.Charset.from_string "a-zA-Z0-9_'"
+
+(** Keywords module, used by parser and {!module:Pretty}. *)
+module KW =
+  Earley_core.Keywords.Make(struct
+    let id_charset = id_charset
+    let reserved = []
+  end)
+
 (** Representation of a (located) identifier. *)
 type ident = strloc
 
