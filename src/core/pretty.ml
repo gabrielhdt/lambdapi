@@ -68,12 +68,12 @@ end
     module [T]. *)
 module Make (T: PPTERM) = struct
 
-  let rec pp_p_annot : T.t option pp = fun oc a ->
+  let pp_p_annot : T.t option pp = fun oc a ->
     match a with
     | Some(a) -> Format.fprintf oc " :@ %a" T.pp a
     | None    -> ()
 
-  and pp_p_arg : T.t p_arg pp = fun oc (ids,ao,b) ->
+  let pp_p_arg : T.t p_arg pp = fun oc (ids,ao,b) ->
     let pp_ids = List.pp pp_arg_ident " " in
     match (ao,b) with
     | (None   , false) -> Format.fprintf oc "%a" pp_ids ids
@@ -81,7 +81,7 @@ module Make (T: PPTERM) = struct
     | (Some(a), false) -> Format.fprintf oc "(%a : %a)" pp_ids ids T.pp a
     | (Some(a), true ) -> Format.fprintf oc "{%a : %a}" pp_ids ids T.pp a
 
-  and pp_p_args : T.t p_arg list pp = fun oc ->
+  let pp_p_args : T.t p_arg list pp = fun oc ->
     List.iter (Format.fprintf oc " %a" pp_p_arg)
 
   let pp_p_rule : bool -> T.t p_rule pp = fun first oc r ->
@@ -243,4 +243,13 @@ let pp_p_inductive : string -> T.t p_inductive pp =
         out "set quantifier %a" pp_qident qid
     | P_query(q)                      ->
        pp_p_query oc q
+
+  (** [pp_ast oc ast] pretty prints abstract syntax tree [ast] to formatter
+      [oc]. *)
+  let rec pp_ast : T.t ast pp = fun oc cs ->
+    match cs with
+    | []    -> ()
+    | [c]   -> Format.fprintf oc "%a@." pp_command c
+    | c::cs ->
+      Format.fprintf oc "%a\n@.%a" pp_command c pp_ast cs
 end
