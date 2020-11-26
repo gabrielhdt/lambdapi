@@ -213,16 +213,5 @@ module Pp = Pretty.Make(struct
     let pp_unif_rule = None (* REVIEW *)
   end)
 
-(** [pp_parser_command oc cmd] prints parser term command [cmd] to [oc]. *)
-let pp_parser_command : p_term p_command pp = Pp.pp_command
-
-let rec pp_ast : p_term ast pp = fun oc cs ->
-  match cs with
-  | []    -> ()
-  | [c]   -> Format.fprintf oc "%a@." Pp.pp_command c
-  | c::cs ->
-    Format.fprintf oc "%a\n@.%a" pp_parser_command c pp_ast cs
-
 (** [beautify cmds] pretty-prints the commands [cmds] to standard output. *)
-let beautify : p_term ast -> unit =
-  pp_ast Format.std_formatter
+let beautify : p_term ast -> unit = Pp.pp_ast Format.std_formatter
