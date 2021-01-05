@@ -8,22 +8,26 @@ let with_file : string -> (out_channel -> unit) -> unit = fun file fn ->
 
 let write_makefile : out_channel -> unit = fun oc ->
   Printf.fprintf oc
-    "LP_SRC = $(shell find . -type f -name \"*.lp\")\n\
-     LP_OBJ = $(LP_SRC:%%.lp=%%.lpo)\n\
+    ".POSIX:\n\
+     SRC = nat.lp main.lp\n\
+     OBJ = $(SRC:.lp=.lpo)\n\
+     .SUFFIXES:\n\
      \n\
-     all: $(LP_OBJ)\n\
+     all: $(OBJ)\n\
      \n\
-     $(LP_OBJ)&: $(LP_SRC)\n\
-     \tlambdapi check --gen-obj $^\n\
-     \n\
-     install: $(LP_OBJ) %s\n\
-     \tlambdapi install %s $(LP_OBJ) $(LP_SRC)\n\
+     install: $(OBJ) %s\n\
+     \tlambdapi install %s $(OBJ) $(SRC)\n\
      \n\
      uninstall:\n\
      \tlambdapi uninstall lambdapi.pkg\n\
      \n\
      clean:\n\
-     \trm -f $(LP_OBJ)\n%!" Package.pkg_file Package.pkg_file
+     \trm -f $(OBJ)\n\
+     \n\
+     .SUFFIXES: .lp .lpo\n\
+     \n\
+     .lp.lpo:\n\
+     \tlambdapi check --gen-obj $<\n%!" Package.pkg_file Package.pkg_file
 
 let write_ex_nat : out_channel -> unit = fun oc ->
   Printf.fprintf oc
@@ -90,8 +94,8 @@ let root_path : Path.t Term.t =
      the package will be registered and installed (if desired), and it will \
      hence uniquely identify the package. In particular, the last identifier \
      that constitutes $(docv) will be used as package name. It is important \
-     to note that the module of the package will always be accessed through \
-     their qualified form, which is will be prefixed by $(docv). Refer to \
+     to note that the files of the package can be accessed only through \
+     their qualified form prefixed by $(docv). Refer to \
      the documentation for more information on the module system."
   in
   let i = Arg.(info [] ~docv:"MOD_PATH" ~doc) in

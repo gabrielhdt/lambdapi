@@ -5,6 +5,7 @@
 ;; The lists defined are mainly used for syntax colouring and completion.
 ;;
 ;;; Code:
+
 (defconst lambdapi-tactics
   '("apply"
     "assume"
@@ -31,6 +32,7 @@
     "require"
     "rule"
     "symbol"
+    "inductive"
     "theorem"
     "with")
   "Commands that enrich the signature.")

@@ -33,7 +33,7 @@ def    lem_imp_peirce := lem    -> peirce.
 def peirce_imp_lem    := peirce -> lem.
 
 
-(;  Proofs of the above theorems  ;)
+(;  Proofs of the above opaque symbols  ;)
 
 def lem_imp_dne_prf : lem_imp_dne :=
   lem_prf : (A : Prop -> prf (prop_lem A)) =>

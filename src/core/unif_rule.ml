@@ -29,7 +29,9 @@ let sign : Sign.t =
 let equiv : sym =
   let path = List.map (fun s -> (s, false)) path in
   let bo = ("≡", Assoc_none, 1.1, Pos.none (path, "#equiv")) in
-  let sym = Sign.add_symbol sign Public Defin (Pos.none "#equiv") Kind [] in
+  let sym =
+    Sign.add_symbol sign Public Defin Eager (Pos.none "#equiv") Kind []
+  in
   Sign.add_binop sign "≡" (sym, bo);
   sym
 
@@ -40,7 +42,9 @@ let equiv : sym =
 let cons : sym =
   let path = List.map (fun s -> (s, false)) path in
   let bo = (";", Assoc_right, 1.0, Pos.none (path, "#cons")) in
-  let sym = Sign.add_symbol sign Public Defin (Pos.none "#cons") Kind [] in
+  let sym =
+    Sign.add_symbol sign Public Defin Eager (Pos.none "#cons") Kind []
+  in
   Sign.add_binop sign ";" (sym, bo);
   sym
 
@@ -72,3 +76,6 @@ let rec p_unpack : p_term -> (p_term * p_term) list = fun eqs ->
       else if id s = "#equiv" then [(v, w)] else
       assert false (* Ill-formed term. *)
   | _                               -> assert false (* Ill-formed term. *)
+
+(** [is_ghost s] is true iff [s] is a symbol of the ghost signature. *)
+let is_ghost : sym -> bool = fun s -> s == equiv || s == cons

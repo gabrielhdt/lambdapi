@@ -3,7 +3,7 @@ Lambdapi, a proof assistant based on the λΠ-calculus modulo rewriting [![Gitte
 
 Lambdapi is a proof assistant based on the λΠ-calculus modulo rewriting,
 mostly compatible with the proof checker Dedukti. More details are given
-in the [documentation](doc/DOCUMENTATION.md).
+in the [documentation](https://lambdapi.readthedocs.io).
 
 Installation via [Opam](http://opam.ocaml.org/)
 ---------------------
@@ -23,31 +23,29 @@ MacOS. It might also be possible to make it work on Windows with Cygwin or
 with "bash on Windows".
 
 List of dependencies (for version numbers refer to `lambdapi.opam`):
- - GNU make
- - [ocaml](https://ocaml.org/) (at least 4.05.0 and at most 4.07.1)
- - [dune](https://dune.build/)
- - [odoc](https://github.com/ocaml/odoc) (for documentation only)
- - [bindlib](https://github.com/rlepigre/ocaml-bindlib)
- - [earley](https://github.com/rlepigre/ocaml-earley)
- - [timed](https://github.com/rlepigre/ocaml-timed)
- - [menhir](http://gallium.inria.fr/~fpottier/menhir/)
- - [yojson](https://github.com/ocaml-community/yojson)
- - [cmdliner](https://erratique.ch/logiciel/cmdliner)
- - [why3](http://why3.lri.fr/)
+GNU make,
+[ocaml](https://ocaml.org/) >= 4.07.0,
+[dune](https://dune.build/),
+[bindlib](https://github.com/rlepigre/ocaml-bindlib),
+[earley](https://github.com/rlepigre/ocaml-earley),
+[timed](https://github.com/rlepigre/ocaml-timed),
+[menhir](http://gallium.inria.fr/~fpottier/menhir/),
+[yojson](https://github.com/ocaml-community/yojson),
+[cmdliner](https://erratique.ch/logiciel/cmdliner),
+[why3](http://why3.lri.fr/),
+[alcotest](https://github.com/mirage/alcotest) (for tests),
+[alt-ergo](https://alt-ergo.ocamlpro.com/) (for tests),
+[odoc](https://github.com/ocaml/odoc) (for documentation).
 
-**Note on OCaml versions:** more recent versions of OCaml will be supported
-soon, once the new parsing technology that we are using has stabilized.
-
-**Note on the use of Why3:** the command `why3 config --detect` must be run to
-update the Why3 configuration when a new prover is installed (including on the
-first installation of Why3).
+**Note on the use of Why3:** the command `why3 config --full-config`
+must be run to update the Why3 configuration when a new prover is
+installed (including on the first installation of Why3).
 
 Using Opam, a suitable OCaml environment can be setup as follows.
 ```bash
-opam switch 4.07.1
-eval `opam config env`
-opam install dune odoc menhir yojson cmdliner bindlib.5.0.0 timed.1.0 earley.2.0.0 why3.1.3.1
-why3 config --detect
+opam switch 4.11.1
+opam install dune bindlib earley timed menhir yojson cmdliner why3 alcotest alt-ergo odoc
+why3 config --full-config
 ```
 
 To compile Lambdapi, just run the command `make` in the source directory.
@@ -59,18 +57,14 @@ for more information).
 make               # Build lambdapi.
 make doc           # Build the documentation.
 make install       # Install the program.
-make install_vim   # Install vim support.
+make install_emacs # Install emacs mode, see note on UI.
+make install_vim   # Install vim support, see note UI.
 ```
 
 **Note:** you can run `lambdapi` without installing with `dune exec -- lambdapi`.
 
-**Note on Emacs:** `make install` installs the `lambdapi-mode`, an Emacs major
-mode for editing `lambdapi` files in `$(opam var share)/emacs/site-lisp`.
-To load the `lambdapi-mode` automatically when editing `*.lp` files, add `(load
-"lambdapi-site-file")` to your `~/.emacs.d/init.el` or `~/.emacs`.
-If `lambdapi-mode` is not activated when editing a file ending in `.lp`, read
-the installation section of the
-[documentation](doc/sections/emacs.md#installation).
+**Note on user interfaces:** more instructions on supported editors can be found
+in the [documentation](https://lambdapi.readthedocs.io/en/latest/ui/ui.html).
 
 The following commands can be used for cleaning up the repository:
 ```bash
@@ -81,5 +75,5 @@ make fullclean # Same as distclean, but also removes downloaded libraries.
 
 [gitter-badge]: https://badges.gitter.im/Deducteam/lambdapi.svg
 [gitter-link]: https://gitter.im/Deducteam/lambdapi
-[matrix-badge]: https://matrix.to/img/matrix-badge.svg
+[matrix-badge]: http://strk.kbt.io/tmp/matrix_badge.svg
 [matrix-link]: https://riot.im/app/#/room/#lambdapi:matrix.org

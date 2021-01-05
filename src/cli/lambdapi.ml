@@ -1,8 +1,10 @@
 (** Main program. *)
 
+open! Lplib
+open Lplib.Extra
+
 open Cmdliner
 open Core
-open Extra
 open Files
 open Console
 open Version
@@ -12,11 +14,11 @@ open Version
 (** {3 Evaluation of commands. *)
 
 (** Running the main type-checking mode. *)
-let check_cmd : Config.t -> int option -> bool -> string list -> unit =
+let check_cmd : Cliconf.t -> int option -> bool -> string list -> unit =
     fun cfg timeout recompile files ->
   let run _ =
     let open Timed in
-    Config.init cfg; Stdlib.(Compile.recompile := recompile);
+    Cliconf.init cfg; Stdlib.(Compile.recompile := recompile);
     (* We save time to run each file in the same environment. *)
     let time = Time.save () in
     let handle file =
@@ -48,10 +50,10 @@ let check_cmd : Config.t -> int option -> bool -> string list -> unit =
   Console.handle_exceptions run
 
 (** Running the parsing mode. *)
-let parse_cmd : Config.t -> string list -> unit = fun cfg files ->
+let parse_cmd : Cliconf.t -> string list -> unit = fun cfg files ->
   let run _ =
     let open Timed in
-    Config.init cfg;
+    Cliconf.init cfg;
     (* We save time to run each file in the same environment. *)
     let time = Time.save () in
     let handle file = Time.restore time; ignore (Compile.parse_file file) in
@@ -60,30 +62,46 @@ let parse_cmd : Config.t -> string list -> unit = fun cfg files ->
   Console.handle_exceptions run
 
 (** Running the pretty-printing mode. *)
-let beautify_cmd : Config.t -> string -> unit = fun cfg file ->
-  let run _ = Config.init cfg; Pretty.beautify (Compile.parse_file file) in
+let beautify_cmd : Cliconf.t -> string -> unit = fun cfg file ->
+  let run _ = Cliconf.init cfg; Pretty.beautify (Compile.parse_file file) in
   Console.handle_exceptions run
 
 (** Running the LSP server. *)
-let lsp_server_cmd : Config.t -> bool -> string -> unit =
+let lsp_server_cmd : Cliconf.t -> bool -> string -> unit =
     fun cfg standard_lsp lsp_log_file ->
-  let run _ = Config.init cfg; Lsp.Lp_lsp.main standard_lsp lsp_log_file in
+  let run _ = Cliconf.init cfg; Lsp.Lp_lsp.main standard_lsp lsp_log_file in
   Console.handle_exceptions run
 
 (** Printing a decision tree. *)
-let decision_tree_cmd : Config.t -> (Path.t * string) -> unit =
+let decision_tree_cmd : Cliconf.t -> (Syntax.p_module_path * string) -> unit =
   fun cfg (mp, sym) ->
   let run _ =
     Timed.(verbose := 0); (* To avoid printing the "Checked ..." line *)
-    Config.init cfg;
+    (* By default, search for a package from the current working directory. *)
+    let pth = Sys.getcwd () in
+    let pth = Filename.concat pth "." in
+    Package.apply_config pth;
+    Cliconf.init cfg;
     let sym =
-      let sign = Compile.compile false mp in
+      let sign = Compile.compile false (List.map fst mp) in
       let ss = Sig_state.of_sign sign in
-      let (prt, prv) = (true, true) in
-      try Sig_state.find_sym false ss (Pos.none ([], sym)) ~prt ~prv
-      with Not_found -> fatal_no_pos "Symbol not found."
+      if String.contains sym '#' then
+        (* If [sym] contains a hash, it’s a ghost symbol. *)
+        try fst (StrMap.find sym Timed.(!(Unif_rule.sign.sign_symbols)))
+        with Not_found ->
+          fatal_no_pos "Symbol \"%s\" not found in ghost modules." sym
+      else
+        try
+          Sig_state.find_sym ~prt:true ~prv:true false ss (Pos.none (mp, sym))
+        with Not_found ->
+          fatal_no_pos "Symbol \"%s\" not found in module \"%a\"."
+            sym Path.pp (List.map fst mp)
     in
-    out 0 "%a" Tree_graphviz.to_dot sym
+    if Timed.(!(sym.sym_rules)) = [] then
+      wrn None "Cannot print decision tree: \
+                symbol \"%s\" does not have any rule." sym.sym_name
+    else
+      out 0 "%a" Tree_graphviz.to_dot sym
   in
   Console.handle_exceptions run
 
@@ -124,16 +142,27 @@ let lsp_log_file : string Term.t =
 
 (** Specific to the ["decision-tree"] command. *)
 
-let qsym : (Path.t * string) Term.t =
+let qsym : (Syntax.p_module_path * string) Term.t =
+  let qsym_conv: (Syntax.p_module_path * string) Arg.conv =
+    let parse (s: string):
+      (Syntax.p_module_path * string, [>`Msg of string]) result =
+      match Parser.parse_qident s with
+      | Error(i, Some(pos)) ->
+        let msg =
+          Format.sprintf "[%d:%s] invalid identifier" i (Pos.to_string pos)
+        in
+        Error(`Msg(msg))
+      | Error(i, None) ->
+        let msg = Format.sprintf "[%d] invalid identifier" i in
+        Error(`Msg(msg))
+      | Ok(e) -> Ok(e)
+    in
+    let print fmt qid = Pretty.qident fmt (Pos.none qid) in
+    Arg.conv (parse, print)
+  in
   let doc = "Fully qualified symbol name with dot separated identifiers." in
   let i = Arg.(info [] ~docv:"MOD_PATH.SYM" ~doc) in
-  let separate l =
-    match List.rev l with
-    | []   -> assert false (* Unreachable: Cmdliner ensures [l] non-empty *)
-    | s::l -> (List.rev l, s)
-  in
-  let arg = Arg.(non_empty & pos 0 (list ~sep:'.' string) [] & i) in
-  Term.(const separate $ arg)
+  Arg.(value & pos 0 qsym_conv ([], "") & i)
 
 (** Remaining arguments: source files. *)
 
@@ -186,7 +215,7 @@ let man_pkg_file =
 
 let check_cmd =
   let doc = "Type-checks the given files." in
-  Term.(const check_cmd $ Config.full $ timeout $ recompile $ files),
+  Term.(const check_cmd $ Cliconf.full $ timeout $ recompile $ files),
   Term.info "check" ~doc ~man:man_pkg_file
 
 let decision_tree_cmd =
@@ -194,22 +223,22 @@ let decision_tree_cmd =
     "Prints decision tree of a symbol to standard output using the \
      Dot language. Piping to `dot -Tpng | display' displays the tree."
   in
-  Term.(const decision_tree_cmd $ Config.full $ qsym),
+  Term.(const decision_tree_cmd $ Cliconf.full $ qsym),
   Term.info "decision-tree" ~doc ~man:man_pkg_file
 
 let parse_cmd =
   let doc = "Run the parser on the given files." in
-  Term.(const parse_cmd $ Config.full $ files),
+  Term.(const parse_cmd $ Cliconf.full $ files),
   Term.info "parse" ~doc ~man:man_pkg_file
 
 let beautify_cmd =
   let doc = "Run the parser and pretty-printer on the given files." in
-  Term.(const beautify_cmd $ Config.full $ file),
+  Term.(const beautify_cmd $ Cliconf.full $ file),
   Term.info "beautify" ~doc ~man:man_pkg_file
 
 let lsp_server_cmd =
   let doc = "Runs the LSP server." in
-  Term.(const lsp_server_cmd $ Config.full $ standard_lsp $ lsp_log_file),
+  Term.(const lsp_server_cmd $ Cliconf.full $ standard_lsp $ lsp_log_file),
   Term.info "lsp" ~doc ~man:man_pkg_file
 
 let help_cmd =

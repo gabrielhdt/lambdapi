@@ -3,7 +3,10 @@
     @see <http://cl2-informatik.uibk.ac.at/mercurial.cgi/TPDB/file/tip/xml/xtc.xsd>
 *)
 
-open Extra
+open! Lplib
+open Lplib.Base
+open Lplib.Extra
+
 open Timed
 open Terms
 
@@ -162,14 +165,15 @@ let get_vars : sym -> rule -> (string * Terms.term) list = fun s r ->
       (Symb s) r.lhs
   in
   let ctx =
-    let fn l x = (x, (Meta(fresh_meta Type 0,[||])), None) :: l in
+    let fn l x = (x, (Meta(Meta.fresh Type 0,[||])), None) :: l in
     List.fold_left fn [] !var_list
   in
-  let (_,l) = Infer.infer ctx lhs in
-  (* Discard contexts *)
-  let l = List.map (fun (_,t,u) -> (t,u)) l in
-  let ctx = List.map (fun (x,a,_) -> (x, a)) ctx in
-  List.map (fun (v,ty) -> Bindlib.name_of v, List.assoc ty l) ctx
+  match Infer.infer_noexn ctx lhs with
+  | None -> assert false (*FIXME?*)
+  | Some (_,cs) ->
+  let cs = List.map (fun (_,t,u) -> (t,u)) cs in
+  let ctx = List.map (fun (x,a,_) -> (x,a)) ctx in
+  List.map (fun (v,ty) -> Bindlib.name_of v, List.assoc ty cs(*FIXME?*)) ctx
 
 (** [to_XTC oc sign] outputs a XTC representation of the rewriting system of
     the signature [sign] to the output channel [oc]. *)
@@ -178,8 +182,12 @@ let to_XTC : Format.formatter -> Sign.t -> unit = fun oc sign ->
   let deps = Sign.dependencies sign in
   (* Function to iterate over every symbols. *)
   let iter_symbols : (sym -> unit) -> unit = fun fn ->
+    (* Iterate on all symbols of a signature, excluding ghost symbols. *)
     let iter_symbols sign =
-      StrMap.iter (fun _ (s,_) -> fn s) Sign.(!(sign.sign_symbols))
+      let not_on_ghosts _ (s, _) =
+        if not (Unif_rule.is_ghost s) then fn s
+      in
+      StrMap.iter not_on_ghosts Sign.(!(sign.sign_symbols))
     in
     List.iter (fun (_, sign) -> iter_symbols sign) deps
   in

@@ -9,9 +9,11 @@
    but through the current module only, in order to setup the [sig_state]
    properly. *)
 
+open Lplib.Base
+open Lplib.Extra
+
 open Timed
 open Console
-open Extra
 open Files
 open Pos
 open Syntax
@@ -79,22 +81,32 @@ let remove_pp_hint_eq :
     if eq_pp_hint h h' then SymMap.remove s pp_hints else pp_hints
   with Not_found -> pp_hints
 
-(** [add_symbol ss e p x a impl] generates a new signature state from [ss] by
-   creating a new symbol with expo [e], property [p], name [x], type [a],
-   implicit arguments [impl] and optional definition [t]. *)
-let add_symbol : sig_state -> expo -> prop -> strloc -> term -> bool list
-                 -> term option -> sig_state =
-  fun ss e p x a impl t ->
-  let s = Sign.add_symbol ss.signature e p x a impl in
+(** Symbol properties needed for the signature *)
+type sig_symbol =
+  { expo   : expo        (** exposition          *)
+  ; prop   : prop        (** property            *)
+  ; mstrat : match_strat (** strategy            *)
+  ; ident  : ident       (** name                *)
+  ; typ    : term        (** type                *)
+  ; impl   : bool list   (** implicit arguments  *)
+  ; def    : term option (** optional definition *) }
+
+(** [add_symbol ss sig_symbol={e,p,st,x,a,impl,def}] generates a new signature
+   state from [ss] by creating a new symbol with expo [e], property [p],
+   strategy [st], name [x], type [a], implicit arguments [impl] and optional
+   definition [t]. This new symbol is returned too. *)
+let add_symbol : sig_state -> sig_symbol -> sig_state * sym =
+  fun ss {expo=e;prop=p;mstrat=st;ident=x;typ=a;impl;def=t} ->
+  let s = Sign.add_symbol ss.signature e p st x a impl in
   begin
     match t with
-    | Some t -> s.sym_def := Some(t)
+    | Some t -> s.sym_def := Some (cleanup t)
     | None -> ()
   end;
   let in_scope = StrMap.add x.elt (s, x.pos) ss.in_scope in
   let pp_hints = remove_pp_hint_eq ss.in_scope x.elt Unqual ss.pp_hints in
   let pp_hints = SymMap.add s Unqual pp_hints in
-  {ss with in_scope; pp_hints}
+  ({ss with in_scope; pp_hints}, s)
 
 (** [add_unop ss n x] generates a new signature state from [ss] by adding a
    unary operator [x] with name [n]. *)

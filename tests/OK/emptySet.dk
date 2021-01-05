@@ -33,6 +33,6 @@ min_ax2 : prf (
 
 def stmt := forall (x => not (min x empty)).
 
-def theorem: prf stmt := (x => p => (empty_ax x) (min_ax2 empty x p)).
+def opaque symbol: prf stmt := (x => p => (empty_ax x) (min_ax2 empty x p)).
 
 

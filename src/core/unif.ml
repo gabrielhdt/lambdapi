@@ -1,6 +1,8 @@
 (** Solving unification constraints. *)
 
-open Extra
+open! Lplib
+open Lplib.Extra
+
 open Timed
 open Console
 open Terms
@@ -12,51 +14,8 @@ open Print
 let log_unif = new_logger 'u' "unif" "unification"
 let log_unif = log_unif.logger
 
-(** Representation of unification problems. *)
-type problem =
-  { to_solve  : constr list
-  (** List of unification problems to solve. *)
-  ; unsolved  : constr list
-  (** List of unification problems that could not be solved. *)
-  ; recompute : bool
-  (** Indicates whether unsolved problems should be rechecked. *) }
-
-(** Empty problem. *)
-let empty_problem : problem =
-  {to_solve  = []; unsolved = []; recompute = false}
-
-(** [pp_constr oc p] prints the unification problem [p] to the
-    output channel [oc]. *)
-let pp_problem : problem pp = fun oc p ->
-  Format.fprintf oc "{ to_solve = [%a]; unsolved = [%a]; recompute = %b }"
-    (List.pp pp_constr "; ") p.to_solve
-    (List.pp pp_constr "; ") p.unsolved
-    p.recompute
-
 (** Exception raised when a constraint is not solvable. *)
 exception Unsolvable
-
-(** [copy_prod_env xs prod] constructs an environment mapping the variables of
-    [xs] to successive dependent product type domains of the term [prod]. Note
-    that dependencies are preserved in the process,  and types of the produced
-    environment can hence refer to other variables of the environment whenever
-    this is necessary. Note that the produced environment is equivalent to the
-    environment [fst (destruct_prod (Array,length xs) prod)] if the variables
-    of its domain are substituted by those of [xs]. Intuitively,  if [prod] is
-    of the form [∀ (y1:a1) ⋯ (yn:an), a]  then the environment returned by the
-    function is (roughly) [(xn, an{y1≔x1, ⋯, yn-1≔xn-1}) ; ⋯ ; (x1, a1)]. Note
-    that the function raises [Invalid_argument] if [prod] does not evaluate to
-    a sequence of [Array.length xs] dependent products. *)
-let copy_prod_env : tvar array -> term -> env = fun xs t ->
-  let n = Array.length xs in
-  let rec build_env i env t =
-    if i >= n then env else
-    match Eval.whnf [] t with
-    | Prod(a,b) -> let env = add xs.(i) (lift a) None env in
-                   build_env (i+1) env (Bindlib.subst b (Vari(xs.(i))))
-    | _         -> invalid_arg "of_prod_vars"
-  in
-  build_env 0 [] t
 
 (** [try_rules ctx s t] tries to solve unification problem [ctx ⊢ s ≡ t] using
     declared unification rules. *)
@@ -159,19 +118,48 @@ let instantiation : ctxt -> meta -> term array -> term ->
         Some (Bindlib.bind_mvar vs (lift u))
   else None
 
+(** Checking type or not during meta instanciation. *)
+let do_type_check = Stdlib.ref true
+
 (** [instantiate ctx m ts u] check whether, in a problem [m[ts]=u], [m] can be
     instantiated and, if so, instantiate it. *)
-let instantiate : ctxt -> meta -> term array -> term -> bool =
-  fun ctx m ts u ->
+let instantiate : ctxt -> meta -> term array ->
+  term -> constr list -> bool =
+  fun ctx m ts u initial ->
   match instantiation ctx m ts u with
   | Some(bu) when Bindlib.is_closed bu ->
-      if !log_enabled then log_unif (yel "%a ≔ %a") pp_meta m pp_term u;
-      set_meta m (Bindlib.unbox bu); true
+      begin
+        let typ_mts =
+          match Infer.type_app ctx !(m.meta_type) (Array.to_list ts) with
+          | Some a -> a
+          | None -> assert false
+        in
+        match Infer.check_noexn ctx u typ_mts with
+        | None -> false
+        | Some cs ->
+            let is_initial c = List.exists (Eval.eq_constr c) initial in
+            let cs = List.filter (fun c -> not (is_initial c)) cs in
+            match cs <> [], Stdlib.(!do_type_check) with
+            | false, _ ->
+                if !log_enabled then
+                  (log_unif (gre "no new constraints");
+                   log_unif (yel "%a ≔ %a") pp_meta m pp_term u);
+                Meta.set m (Bindlib.unbox bu); true
+            | true, false ->
+                if !log_enabled then
+                  (log_unif (yel "new constraints ignored");
+                   log_unif (yel "%a ≔ %a") pp_meta m pp_term u);
+                Meta.set m (Bindlib.unbox bu); true
+            | true, true ->
+                if !log_enabled then log_unif (red "new constraints");
+                false
+      end
   | _ -> false
 
 (** [solve p] tries to solve the unification problem [p] and
     returns the constraints that could not be solved. *)
 let rec solve : problem -> constr list = fun p ->
+  if !log_enabled then log_unif "problem %a" pp_problem p;
   match p with
   | { to_solve = []; unsolved = []; _ } -> []
   | { to_solve = []; unsolved = cs; recompute = true } ->
@@ -181,6 +169,7 @@ let rec solve : problem -> constr list = fun p ->
 
 and solve_aux : ctxt -> term -> term -> problem -> constr list =
   fun ctx t1 t2 p ->
+  let initial = (ctx,t1,t2)::p.to_solve in
   let t1 = Eval.whnf ctx t1 in
   let t2 = Eval.whnf ctx t2 in
   let (h1, ts1) = Basics.get_args t1 in
@@ -204,9 +193,12 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
 
   let decompose () =
     (* Propagate context *)
-    let add_arg_pb l a b = (ctx,a,b)::l in
+    let add_arg_pb a b l = (ctx,a,b)::l in
     let to_solve =
-      try List.fold_left2 add_arg_pb p.to_solve ts1 ts2
+      (* here we use fold_right2 instead of fold_left2
+         to keep the order of the decomposition
+         f a b ≡ f a' b' => a ≡ a && b ≡ b' *)
+      try List.fold_right2 add_arg_pb ts1 ts2 p.to_solve
       with Invalid_argument _ -> error () in
     solve {p with to_solve}
   in
@@ -230,7 +222,7 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
         | Some vars -> vars
       in
       (* Build the environment (yk-1,ak-1{y0=v0,..,yk-2=vk-2});..;(y0,a0). *)
-      let env = copy_prod_env vars !(m.meta_type) in
+      let env = env_of_prod vars !(m.meta_type) in
       (* Build the term s(m0[vs],..,mn-1[vs]). *)
       let k = Array.length vars in
       let t =
@@ -238,14 +230,14 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
           if i <= 0 then add_args (Symb s) (List.rev acc)
           else match unfold t with
                | Prod(a,b) ->
-                  let m = fresh_meta (Env.to_prod env (lift a)) k in
+                  let m = Meta.fresh (Env.to_prod env (lift a)) k in
                   let u = Meta (m,vs) in
                   build (i-1) (u::acc) (Bindlib.subst b u)
                | _ -> raise Cannot_imitate
         in build (List.length ts) [] !(s.sym_type)
       in
-      set_meta m (Bindlib.unbox (Bindlib.bind_mvar vars (lift t)));
-      solve_aux ctx t1 t2 p
+      Meta.set m (Bindlib.unbox (Bindlib.bind_mvar vars (lift t)));
+      solve { p with to_solve = (ctx,t1,t2)::p.to_solve }
     with Cannot_imitate -> add_to_unsolved ()
   in
 
@@ -275,7 +267,7 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
      Πx1:a1,..,Πxn:an,Πx:m2[x1,..,xn],KIND, and do as in the previous case. *)
   let imitate_lam m =
     let n = m.meta_arity in
-    let (env, t) = Infer.destruct_prod n !(m.meta_type) in
+    let (env, t) = Env.destruct_prod n !(m.meta_type) in
     let x,a,env',b,p =
       match Eval.whnf [] t with
       | Prod(a,b) ->
@@ -287,25 +279,25 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
          (* After type inference, a similar constraint should have already
             been generated but has not been processed yet. *)
          let tm2 = Env.to_prod env _Kind in
-         let m2 = fresh_meta tm2 n in
+         let m2 = Meta.fresh tm2 n in
          let a = _Meta m2 (Env.to_tbox env) in
          let x = Bindlib.new_var mkfree "x" in
          let env' = Env.add x a None env in
          let tm3 = Env.to_prod env' _Kind in
-         let m3 = fresh_meta tm3 (n+1) in
+         let m3 = Meta.fresh tm3 (n+1) in
          let b = _Meta m3 (Env.to_tbox env') in
          (* Could be optimized by extending [Env.to_tbox env]. *)
          let u = Bindlib.unbox (_Prod a (Bindlib.bind_var x b)) in
          x,a,env',b,{p with to_solve = (ctx,u,t)::p.to_solve}
     in
     let tm1 = Env.to_prod env' b in
-    let m1 = fresh_meta tm1 (n+1) in
+    let m1 = Meta.fresh tm1 (n+1) in
     let u1 = _Meta m1 (Env.to_tbox env') in
     let xu1 = _Abst a (Bindlib.bind_var x u1) in
     let v = Bindlib.bind_mvar (Env.vars env) xu1 in
-    set_meta m (Bindlib.unbox v);
+    Meta.set m (Bindlib.unbox v);
     let t1 = add_args h1 ts1 and t2 = add_args h2 ts2 in
-    solve_aux ctx t1 t2 p
+    solve { p with to_solve = (ctx,t1,t2)::p.to_solve }
   in
 
   (* [inverses_for_prod s] returns the list of triples [(s0,s1,s2,b)] such
@@ -391,17 +383,33 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
       log_unif "solve_inj %a ≡ %a"
         pp_term (add_args (Symb s) ts) pp_term v;
     match inverse_opt s ts v with
-    | Some (a, b) -> solve_aux ctx a b p
+    | Some (a, b) -> solve { p with to_solve = (ctx,a,b)::p.to_solve }
     | None -> add_to_unsolved ()
   in
 
   (* For a problem of the form [m[ts] = Πx:_,_] with [ts] distinct bound
-     variables, [imitate_prod m ts] instantiates [m] by a fresh product and
-     continue. *)
+     variables, and ts1 and ts2 equal to [], [imitate_prod m ts] instantiates
+     [m] by a fresh product and continue. *)
   let imitate_prod m =
-    let mxs, prod, _, _ = Infer.extend_meta_type m in
-    (* ts1 and ts2 are equal to [] *)
-    solve_aux ctx mxs prod { p with to_solve = (ctx,h1,h2)::p.to_solve }
+    let n = m.meta_arity in
+    let (env, s) = destruct_prod n Timed.(!(m.meta_type)) in
+    let xs = Array.map _Vari (vars env) in
+
+    let t1 = to_prod env _Type in
+    let m1 = Meta.fresh t1 n in
+
+    let y = Bindlib.new_var mkfree "y" in
+    let env' = add y (_Meta m1 xs) None env in
+    let t2 = to_prod env' (lift s) in
+    let m2 = Meta.fresh t2 (n+1) in
+
+    let mxs = Bindlib.unbox (_Meta m xs) in
+    let a = _Meta m1 xs in
+    let b = Bindlib.bind_var y (_Meta m2 (Array.append xs [|_Vari y|])) in
+    let prod = Bindlib.unbox (_Prod a b) in
+
+    let ctx' = Env.to_ctxt env in
+    solve { p with to_solve = (ctx',mxs,prod)::(ctx,h1,h2)::p.to_solve }
   in
 
   match (h1, h2) with
@@ -411,8 +419,9 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
 
   | (Prod(a1,b1), Prod(a2,b2))
   | (Abst(a1,b1), Abst(a2,b2)) ->
-     let (_,b1,b2) = Bindlib.unbind2 b1 b2 in
-     solve_aux ctx a1 a2 {p with to_solve = (ctx,b1,b2) :: p.to_solve}
+     let (x,b1,b2) = Bindlib.unbind2 b1 b2 in
+     let ctx' = (x,a1,None) :: ctx in
+     solve { p with to_solve = (ctx,a1,a2)::(ctx',b1,b2)::p.to_solve}
 
   (* Other cases. *)
   | (Vari(x1)   , Vari(x2)   ) when Bindlib.eq_vars x1 x2 -> decompose ()
@@ -429,19 +438,23 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
          | _, _ ->
            begin
              match inverse_opt s1 ts1 t2 with
-             | Some (t, u) -> solve_aux ctx t u p
+             | Some (t, u) ->
+               solve { p with to_solve = (ctx,t,u)::p.to_solve }
              | None ->
                begin
                  match inverse_opt s2 ts2 t1 with
-                 | Some (t, u) -> solve_aux ctx t u p
+                 | Some (t, u) ->
+                     solve { p with to_solve = (ctx,t,u)::p.to_solve }
                  | None -> add_to_unsolved ()
                end
            end
        end
 
-  | (Meta(m,ts) , _          ) when ts1 = [] && instantiate ctx m ts t2 ->
+  | (Meta(m,ts) , _          )
+    when ts1 = [] && instantiate ctx m ts t2 initial ->
      solve {p with recompute = true}
-  | (_          , Meta(m,ts) ) when ts2 = [] && instantiate ctx m ts t1 ->
+  | (_          , Meta(m,ts) )
+    when ts2 = [] && instantiate ctx m ts t1 initial ->
      solve {p with recompute = true}
 
   | (Meta(m,ts)  , Prod(_,_) )
@@ -471,14 +484,22 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
 
   | (_          , _          ) -> add_to_unsolved ()
 
-(** [solve problem] attempts to solve [problem]. If there is
+(** [solve p] tries to solve the unification problem [p] and
+    returns the constraints that could not be solved.
+    This is the entry point setting the flag type_check *)
+let solve : ?type_check:bool -> problem -> constr list =
+  fun ?(type_check=true) p -> Stdlib.(do_type_check := type_check); solve p
+
+(** [solve_noexn problem] attempts to solve [problem]. If there is
    no solution, the value [None] is returned. Otherwise [Some(cs)] is
    returned, where the list [cs] is a list of unsolved convertibility
    constraints. *)
-let solve : problem -> constr list option = fun p ->
-  try Some (solve p) with Unsolvable -> None
+let solve_noexn : ?type_check:bool -> problem -> constr list option =
+  fun ?(type_check=true) p ->
+  try Some (solve ~type_check p) with Unsolvable -> None
 
-(** [eq c t u] tries to unify the terms [t] and [u] in context [c], by
+(** [eq_noexn c t u] tries to unify the terms [t] and [u] in context [c], by
    instantiating their metavariables. *)
-let eq : ctxt -> term -> term -> bool = fun c t u ->
-  solve {empty_problem with to_solve=[c,t,u]} = Some []
+let eq_noexn : ?type_check:bool -> ctxt -> term -> term -> bool =
+  fun ?(type_check=true) c t u ->
+  solve_noexn ~type_check {empty_problem with to_solve=[c,t,u]} = Some []

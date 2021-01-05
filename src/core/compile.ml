@@ -1,6 +1,8 @@
 (** High-level compilation functions. *)
 
-open Extra
+open! Lplib
+open Lplib.Extra
+
 open Timed
 open Sign
 open Console
@@ -15,14 +17,20 @@ let gen_obj = Stdlib.ref false
 let parse_file : string -> Syntax.ast = fun fname ->
   match Filename.check_suffix fname src_extension with
   | true  -> Parser.parse_file fname
-  | false -> Legacy_parser.parse_file fname
+  | false -> Parser.Legacy.parse_file fname
 
 (** [compile force path] compiles the file corresponding to [path], when it is
     necessary (the corresponding object file does not exist,  must be updated,
     or [force] is [true]).  In that case,  the produced signature is stored in
     the corresponding object file. *)
 let rec compile : bool -> Path.t -> Sign.t = fun force path ->
-  let base = Files.module_to_file path in
+  (* Remove escaping quotes from module paths. *)
+  let remove_quote p =
+    if Lp_lexer.is_escaped p then
+      String.(sub p 2 (length p - 4))
+    else p
+  in
+  let base = Files.module_to_file (List.map remove_quote path) in
   let src () =
     (* Searching for source is delayed because we may not need it
        in case of "ghost" signatures (such as for unification rules). *)
@@ -57,12 +65,16 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
          is possible to qualify the symbols of the current modules. *)
       loaded := PathMap.add path sign !loaded;
       let handle ss c =
-        let (ss, p) = Handle.handle_cmd ss c in
+        Terms.Meta.reset_key_counter ();
+        (* We provide the compilation function to the handle commands, so that
+           "require" is able to compile files. *)
+        let (ss, p) = Handle.handle_cmd (compile false) ss c in
         match p with
         | None       -> ss
         | Some(data) ->
             let (st,ts) = (data.pdata_p_state, data.pdata_tactics) in
-            let st = List.fold_left (Tactics.handle_tactic ss) st ts in
+            let e = data.pdata_expo in
+            let st = List.fold_left (Tactics.handle_tactic ss e) st ts in
             data.pdata_finalize ss st
       in
       ignore (List.fold_left handle sig_st (parse_file src));
@@ -83,6 +95,7 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
       let sign = Sign.read obj in
       PathMap.iter (fun mp _ -> ignore (compile false mp)) !(sign.sign_deps);
       loaded := PathMap.add path sign !loaded;
+      Sign.import_ops sign;
       Sign.link sign;
       out 2 "Loaded  [%s]\n%!" obj; sign
     end
@@ -100,20 +113,38 @@ let compile_file : file_path -> Sign.t = fun fname ->
   let mp = Files.file_to_module fname in
   (* Run compilation. *)
   compile Stdlib.(!recompile) mp
+(** Pure wrappers around compilation functions. Functions provided perform the
+    same computations as the ones defined earlier, but restores the state when
+    they have finished. An optional library mapping or state can be passed as
+    argument to change the settings. *)
+module Pure : sig
+  val compile : ?lm:string -> ?st:State.t -> bool -> Path.t -> Sign.t
+  val compile_file : ?lm:string -> ?st:State.t -> file_path -> Sign.t
+end = struct
 
-(* NOTE we need to give access to the compilation function to the parser. This
-   is the only way infix symbols can be parsed, since they may be added to the
-   scope by a “require” command. *)
-let _ =
-  let require mp =
-    (* Save the current console state. *)
-    Console.push_state ();
-    (* Restore the console state to default for compiling. *)
-    Console.reset_default ();
-    (* Compile and go back to previous state. *)
+  (* [pure_apply_cfg ?lm ?st f] is function [f] but pure (without side
+     effects).  The side effects taken into account occur in
+     {!val:Console.State.t}, {!val:Files.lib_mappings} and in the meta
+     variable counter {!module:Terms.Meta}. Arguments [?lm] allows to set the
+     library mappings and [?st] sets the state. *)
+  let pure_apply_cfg : ?lm:string -> ?st:State.t -> ('a -> 'b) -> 'a -> 'b =
+    fun ?lm ?st f x ->
+    let libmap = !lib_mappings in
+    State.push ();
+    Option.iter new_lib_mapping lm;
+    Option.iter State.apply st;
+    let restore () =
+      State.pop ();
+      lib_mappings := libmap
+    in
     try
-      ignore (compile false mp);
-      try Console.pop_state () with _ -> assert false (* Unreachable. *)
-    with e -> Console.pop_state (); raise e
-  in
-  Stdlib.(Parser.require := require)
+      let res = f x in
+      restore (); res
+    with e -> restore (); raise e
+
+  let compile ?lm ?st force path =
+    let f (force, path) = compile force path in
+    pure_apply_cfg ?lm ?st f (force, path)
+
+  let compile_file ?lm ?st = pure_apply_cfg ?lm ?st compile_file
+end

@@ -1,8 +1,9 @@
 (** Configuration for the CLI and common flags. *)
 
+open! Lplib
+
 open Cmdliner
 open Core
-open Extra
 open Files
 open Console
 
@@ -13,7 +14,6 @@ type config =
   { gen_obj     : bool
   ; lib_root    : string option
   ; map_dir     : (string * string) list
-  ; keep_order  : bool
   ; verbose     : int option
   ; no_warnings : bool
   ; debug       : string
@@ -30,7 +30,6 @@ let default_config =
   { gen_obj     = false
   ; lib_root    = None
   ; map_dir     = []
-  ; keep_order  = false
   ; verbose     = None
   ; no_warnings = false
   ; debug       = ""
@@ -44,9 +43,8 @@ let default_config =
 let init : config -> unit = fun cfg ->
   (* Set all the flags and configs. *)
   Compile.gen_obj := cfg.gen_obj;
-  Option.iter Files.set_lib_root cfg.lib_root;
+  Files.set_lib_root cfg.lib_root;
   List.iter (fun (m,d) -> Files.new_lib_mapping (m ^ ":" ^ d)) cfg.map_dir;
-  Tree.rule_order := cfg.keep_order;
   Option.iter set_default_verbose cfg.verbose;
   no_wrn := cfg.no_warnings;
   set_default_debug cfg.debug;
@@ -56,12 +54,11 @@ let init : config -> unit = fun cfg ->
   if Timed.(!log_enabled) then
     begin
       Files.log_file "running directory: [%s]" (Files.current_path ());
-      Files.log_file "library root path: [%s]" (Files.lib_root_path ());
+      Files.log_file "library root path: [%s]"
+        (match !lib_root with None -> assert false | Some(p) -> p);
       let fn = Files.log_file "mapping: [%a] → [%s]" Files.Path.pp in
       Files.ModMap.iter fn (Files.current_mappings ())
     end;
-  (* Register the library root. *)
-  Files.init_lib_root ();
   (* Initialise the [Pure] interface (this must come last). *)
   Pure.set_initial_time ()
 
@@ -82,15 +79,17 @@ let gen_obj : bool Term.t =
 
 let lib_root : string option Term.t =
   let doc =
-    Printf.sprintf
-      "Set the library root to be the directory $(docv). Roughly, the \
-       library root is common path under which every module is placed. It \
-       has the same purpose as the root directory \"/\" of Unix systems. \
-       In fact it is possible to \"mount\" directories under the library \
-       root with the \"--map-dir\" option. The default library root of the \
-       system (set to \"%s\") should always be preferred. This option is \
-       only provided for advanced usages."
-      (Files.default_lib_root ())
+    "Set the library root to be the directory $(docv). The library root \
+     is a common path under which every module is placed. \
+     It has the same purpose as the root directory \"/\" of Unix systems. \
+     In fact it is possible to \"mount\" directories under the library \
+     root with the \"--map-dir\" option. \
+     Lambdapi uses $(docv) as library root if it is provided, \
+     otherwise it uses $(b,\\$LAMBDAPI_LIB_ROOT/lib/lambdapi/lib_root) \
+     if the environment variable $(b,LAMBDAPI_LIB_ROOT) is set, \
+     then $(b,\\$OPAM_SWITCH_PREFIX/lib/lambdapi/lib_root) \
+     if $(b,OPAM_SWITCH_PREFIX) is set or it uses \
+     /usr/local/lib/lambdapi/lib_root."
   in
   Arg.(value & opt (some dir) None & info ["lib-root"] ~docv:"DIR" ~doc)
 
@@ -104,13 +103,6 @@ let map_dir : (string * string) list Term.t =
   in
   let i = Arg.(info ["map-dir"] ~docv:"MOD:DIR" ~doc) in
   Arg.(value & opt_all (pair ~sep:':' string dir) [] & i)
-
-let keep_order : bool Term.t =
-  let doc =
-    "Respect the order of definition of the rewriting rules in files. In \
-     other words, earlier rewriting rules are applied with higher priority."
-  in
-  Arg.(value & flag & info ["keep-rule-order"] ~doc)
 
 (** Debugging and output options. *)
 
@@ -181,21 +173,19 @@ let termination : string option Term.t =
 
 (** [full] gathers the command line arguments common to most commands. *)
 let full : config Term.t =
-  let fn gen_obj lib_root map_dir keep_order verbose no_warnings
+  let fn gen_obj lib_root map_dir verbose no_warnings
       debug no_colors too_long confluence termination =
-    { gen_obj ; lib_root ; map_dir ; keep_order ; verbose ; no_warnings
+    { gen_obj ; lib_root ; map_dir ; verbose ; no_warnings
     ; debug ; no_colors ; too_long ; confluence ; termination }
   in
   let open Term in
-  const fn $ gen_obj $ lib_root $ map_dir $ keep_order $ verbose
+  const fn $ gen_obj $ lib_root $ map_dir $ verbose
   $ no_warnings $ debug $ no_colors $ too_long $ confluence $ termination
 
 (** [minimal] gathers the minimal command line options to enable debugging and
-    accest to the library root. *)
+    access to the library root. *)
 let minimal : config Term.t =
   let fn lib_root map_dir verbose debug no_colors =
     { default_config with lib_root ; map_dir ; verbose ; debug ; no_colors }
   in
   Term.(const fn $ lib_root $ map_dir $ verbose $ debug $ no_colors)
-
-
