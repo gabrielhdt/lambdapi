@@ -1,5 +1,5 @@
 {
-open Console
+open Error
 open Lexing
 open Pos
 

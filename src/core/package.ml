@@ -4,7 +4,7 @@ open Lplib
 open Lplib.Extra
 
 open Files
-open Console
+open Error
 
 (** A package configuration file is expected at the root of every package. The
     file is used to figure out the module path under which the package must be

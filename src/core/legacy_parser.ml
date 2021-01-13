@@ -1,8 +1,8 @@
 (** Interface for the legacy parser. *)
 
 (** {b NOTE} we maintain the invariant described in the [Parser] module: every
-    error should have an attached position.  We do not open [Console] to avoid
-    calls to [Console.fatal] and [Console.fatal_no_pos].  In case of an error,
+    error should have an attached position.  We do not open [Error] to avoid
+    calls to [Error.fatal] and [Error.fatal_no_pos].  In case of an error,
     the [parser_fatal] function should be used instead. *)
 
 let parse_lexbuf : string -> Lexing.lexbuf -> Syntax.ast = fun fname lexbuf ->

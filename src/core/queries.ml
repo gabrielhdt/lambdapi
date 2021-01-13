@@ -1,6 +1,6 @@
 (** Queries (available in tactics and at the toplevel). *)
 
-open Console
+open Error
 open Pos
 open Syntax
 open Terms
@@ -53,17 +53,17 @@ let handle_query : Sig_state.t -> proof_state option -> p_query -> unit =
       end
   | P_query_debug(e,s) ->
       (* Just update the option, state not modified. *)
-      Console.set_debug e s;
+      Error.set_debug e s;
       out 3 "(flag) debug → %s%s\n" (if e then "+" else "-") s
   | P_query_verbose(i) ->
       (* Just update the option, state not modified. *)
-      if Timed.(!Console.verbose) = 0 then
-        (Timed.(Console.verbose := i); out 1 "(flag) verbose → %i\n" i)
+      if Timed.(!Error.verbose) = 0 then
+        (Timed.(Error.verbose := i); out 1 "(flag) verbose → %i\n" i)
       else
-        (out 1 "(flag) verbose → %i\n" i; Timed.(Console.verbose := i))
+        (out 1 "(flag) verbose → %i\n" i; Timed.(Error.verbose := i))
   | P_query_flag(id,b) ->
       (* We set the value of the flag, if it exists. *)
-      (try Console.set_flag id b
+      (try Error.set_flag id b
        with Not_found -> wrn q.pos "Unknown flag \"%s\"." id);
       out 3 "(flag) %s → %b\n" id b
   | P_query_infer(pt, cfg) ->

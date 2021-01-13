@@ -8,7 +8,7 @@
 open! Lplib
 open Lplib.Base
 
-open Console
+open Error
 open Pos
 open Syntax
 

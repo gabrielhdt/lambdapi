@@ -11,7 +11,7 @@ open Lplib.Extra
 
 open Timed
 open Terms
-open Console
+open Error
 open Syntax
 open Sig_state
 
@@ -23,16 +23,16 @@ let log_prnt = log_prnt.logger
 let sig_state : sig_state ref = ref Sig_state.dummy
 
 (** Flag controling the printing of the domains of λ-abstractions. *)
-let print_domains : bool ref = Console.register_flag "print_domains" false
+let print_domains : bool ref = Error.register_flag "print_domains" false
 
 (** Flag controling the printing of implicit arguments. *)
-let print_implicits : bool ref = Console.register_flag "print_implicits" false
+let print_implicits : bool ref = Error.register_flag "print_implicits" false
 
 (** Flag controling the printing of implicit arguments. *)
-let print_meta_type : bool ref = Console.register_flag "print_meta_type" false
+let print_meta_type : bool ref = Error.register_flag "print_meta_type" false
 
 (** Flag controlling the printing of the context in unification. *)
-let print_contexts : bool ref = Console.register_flag "print_contexts" false
+let print_contexts : bool ref = Error.register_flag "print_contexts" false
 
 let pp_prop : prop pp = fun oc p ->
   match p with

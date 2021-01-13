@@ -3,7 +3,7 @@
 open! Lplib
 open Lplib.Extra
 
-open Console
+open Error
 open Pos
 open Syntax
 open Terms

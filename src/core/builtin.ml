@@ -5,7 +5,7 @@ open Lplib.Extra
 
 open Timed
 open Terms
-open Console
+open Error
 open Pos
 open Sig_state
 

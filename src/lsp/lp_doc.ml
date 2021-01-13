@@ -79,8 +79,8 @@ let process_cmd _file (nodes,st,dg) ast =
   let open Pure in
   (* let open Timed in *)
   (* XXX: Capture output *)
-  (* Console.out_fmt := lp_fmt;
-   * Console.err_fmt := lp_fmt; *)
+  (* Error.out_fmt := lp_fmt;
+   * Error.err_fmt := lp_fmt; *)
   let cmd_loc = Command.get_pos ast in
   match handle_command st ast with
   | Cmd_OK st ->

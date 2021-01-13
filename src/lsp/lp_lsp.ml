@@ -424,9 +424,9 @@ let main std log_file =
   (* XXX: Capture better / per sentence. *)
   let lp_oc = open_out "log-lp.txt" in
   let lp_fmt = F.formatter_of_out_channel lp_oc in
-  Console.out_fmt := lp_fmt;
-  Console.err_fmt := lp_fmt;
-  (* Console.verbose := 4; *)
+  Error.out_fmt := lp_fmt;
+  Error.err_fmt := lp_fmt;
+  (* Error.verbose := 4; *)
 
   let rec loop () =
     let com = LIO.read_request stdin in

@@ -11,14 +11,14 @@ open Files
 open Pos
 
 (** {b NOTE} we maintain the invariant that errors reported by the parser have
-    a position. To help enforce that, we avoid opening the [Console] module so
-    that [Console.fatal] and [Console.fatal_no_pos] are not in scope. To raise
+    a position. To help enforce that, we avoid opening the [Error] module so
+    that [Error.fatal] and [Error.fatal_no_pos] are not in scope. To raise
     an error in the parser, only the following function should be used. *)
 
-(** [parser_fatal loc fmt] is a wrapper for [Console.fatal] that enforces that
+(** [parser_fatal loc fmt] is a wrapper for [Error.fatal] that enforces that
     the error has an attached source code position. *)
-let parser_fatal : Pos.pos -> ('a,'b) Console.koutfmt -> 'a = fun loc fmt ->
-  Console.fatal (Some(loc)) fmt
+let parser_fatal : Pos.pos -> ('a,'b) Error.koutfmt -> 'a = fun loc fmt ->
+  Error.fatal (Some(loc)) fmt
 
 #define LOCATE locate
 
@@ -657,8 +657,8 @@ let do_require : Pos.pos -> p_module_path -> unit = fun loc path ->
   in
   (* We attach our position to errors comming from the outside. *)
   try reentrant_call () with
-  | Console.Fatal(None     , msg) -> local_fatal "%s" msg
-  | Console.Fatal(Some(pos), msg) -> local_fatal "[%a] %s" Pos.print pos msg
+  | Error.Fatal(None     , msg) -> local_fatal "%s" msg
+  | Error.Fatal(Some(pos), msg) -> local_fatal "[%a] %s" Pos.print pos msg
   | e                             -> local_fatal "Uncaught exception: [%s]"
                                        (Printexc.to_string e)
 

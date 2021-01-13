@@ -9,8 +9,8 @@ open Legacy_lexer
 open Parser
 
 (** {b NOTE} we maintain the invariant described in the [Parser] module: every
-    error should have an attached position.  We do not open [Console] to avoid
-    calls to [Console.fatal] and [Console.fatal_no_pos].  In case of an error,
+    error should have an attached position.  We do not open [Error] to avoid
+    calls to [Error.fatal] and [Error.fatal_no_pos].  In case of an error,
     the [parser_fatal] function should be used instead. *)
 
 (** [get_args t] decomposes the parser level term [t] into a spine [(h,args)],
@@ -41,7 +41,7 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
   let (ctx, lhs, rhs) = r.elt in
   (* Check for (deprecated) annotations in the context. *)
   let get_var (x,ao) =
-    let open Console in
+    let open Error in
     let fn a = wrn a.pos "Ignored type annotation." in
     (if !verbose > 1 then Option.iter fn ao); x
   in
@@ -51,7 +51,7 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
   in
   (* Find the maximum number of arguments a variable is applied to. *)
   (* Using [fatal] is OK here as long as it is called with term positions. *)
-  let fatal = Console.fatal in
+  let fatal = Error.fatal in
   let arity = Hashtbl.create 7 in
   let rec compute_arities env t =
     let (h, args) = get_args t in

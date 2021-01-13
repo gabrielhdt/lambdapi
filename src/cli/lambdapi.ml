@@ -6,7 +6,7 @@ open Lplib.Extra
 open Cmdliner
 open Core
 open Files
-open Console
+open Error
 open Version
 
 (* NOTE only standard [Stdlib] references here. *)
@@ -22,7 +22,7 @@ let check_cmd : Config.t -> int option -> bool -> string list -> unit =
     (* We save time to run each file in the same environment. *)
     let time = Time.save () in
     let handle file =
-      Console.reset_default ();
+      Debug_console.reset_default ();
       Time.restore time;
       let sign =
         match timeout with
@@ -47,7 +47,7 @@ let check_cmd : Config.t -> int option -> bool -> string list -> unit =
     in
     List.iter handle files
   in
-  Console.handle_exceptions run
+  Error.handle_exceptions run
 
 (** Running the parsing mode. *)
 let parse_cmd : Config.t -> string list -> unit = fun cfg files ->
@@ -59,18 +59,18 @@ let parse_cmd : Config.t -> string list -> unit = fun cfg files ->
     let handle file = Time.restore time; ignore (Compile.parse_file file) in
     List.iter handle files
   in
-  Console.handle_exceptions run
+  Error.handle_exceptions run
 
 (** Running the pretty-printing mode. *)
 let beautify_cmd : Config.t -> string -> unit = fun cfg file ->
   let run _ = Config.init cfg; Pretty.beautify (Compile.parse_file file) in
-  Console.handle_exceptions run
+  Error.handle_exceptions run
 
 (** Running the LSP server. *)
 let lsp_server_cmd : Config.t -> bool -> string -> unit =
     fun cfg standard_lsp lsp_log_file ->
   let run _ = Config.init cfg; Lsp.Lp_lsp.main standard_lsp lsp_log_file in
-  Console.handle_exceptions run
+  Error.handle_exceptions run
 
 (** Printing a decision tree. *)
 let decision_tree_cmd : Config.t -> (Syntax.p_module_path * string) -> unit =
@@ -103,7 +103,7 @@ let decision_tree_cmd : Config.t -> (Syntax.p_module_path * string) -> unit =
     else
       out 0 "%a" Tree_graphviz.to_dot sym
   in
-  Console.handle_exceptions run
+  Error.handle_exceptions run
 
 (** {3 Command line argument parsing} *)
 

@@ -4,7 +4,7 @@ open! Lplib
 open Lplib.Extra
 
 open Timed
-open Console
+open Error
 open Terms
 open Basics
 open Env

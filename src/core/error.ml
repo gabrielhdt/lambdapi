@@ -148,12 +148,12 @@ let set_default_debug : string -> unit = fun str ->
 let new_logger : char -> string -> string -> logger = fun key name desc ->
   (* Sanity checks. *)
   if String.length name <> 4 then
-    invalid_arg "Console.new_logger: name must be 4 characters long";
+    invalid_arg "Error.new_logger: name must be 4 characters long";
   let check data =
     if key = data.logger_key then
-      invalid_arg "Console.new_logger: already used key";
+      invalid_arg "Error.new_logger: already used key";
     if name = data.logger_name then
-      invalid_arg "Console.new_logger: already used name"
+      invalid_arg "Error.new_logger: already used name"
   in
   List.iter check Stdlib.(!loggers);
   (* Logger registration. *)
@@ -198,7 +198,7 @@ let boolean_flags : (bool * bool ref) StrMap.t Stdlib.ref =
     value of [d]. Note the name should not have been used previously. *)
 let register_flag : string -> bool -> bool ref = fun id default ->
   if StrMap.mem id Stdlib.(!boolean_flags) then
-    invalid_arg "Console.register_flag: already registered";
+    invalid_arg "Error.register_flag: already registered";
   let r = ref default in
   Stdlib.(boolean_flags := StrMap.add id (default, r) !boolean_flags); r
 
@@ -206,79 +206,3 @@ let register_flag : string -> bool -> bool ref = fun id default ->
     [Not_found] if no flag with this name was registered. *)
 let set_flag : string -> bool -> unit = fun id b ->
   snd (StrMap.find id Stdlib.(!boolean_flags)) := b
-
-(** [reset_default ()] resets the verbosity level and the state of the loggers
-    to their default value (configurable by the user with command line flags).
-    The boolean flags are also reset to their default values. *)
-let reset_default : unit -> unit = fun () ->
-  (* Reset verbosity level. *)
-  verbose := Stdlib.(!default_verbose);
-  (* Reset debugging flags. *)
-  log_enabled := false;
-  let reset l =
-    let v = String.contains Stdlib.(!default_loggers) l.logger_key in
-    l.logger_enabled := v; if v then log_enabled := true;
-  in
-  List.iter reset Stdlib.(!loggers);
-  (* Reset flags to their default values. *)
-  let reset _ (default, r) = r := default in
-  StrMap.iter reset Stdlib.(!boolean_flags)
-
-(** Module to manipulate imperative state of the typechecker. *)
-module State = struct
-  (** Settings used to compile files. *)
-  type t =
-    { verbose: int
-    (** Verbosity level. *)
-    ; loggers: (char * bool) list
-    (** Loggers enabled. *)
-    ; bflags: bool StrMap.t
-    (** Boolean flags. *) }
-
-  (** Stack of saved state for verbosity, loggers and boolean flags. *)
-  let saved : t list ref = ref []
-  (* NOTE: could be hidden in the signature declaration. *)
-
-  (** [push ()] saves the current state of [verbose], the loggers, and the
-      boolean flags, pushing it to the stack. *)
-  let push : unit -> unit = fun () ->
-    let verbose = !verbose in
-    let loggers =
-      let fn l = (l.logger_key, !(l.logger_enabled)) in
-      List.map fn Stdlib.(!loggers)
-    in
-    let bflags : bool StrMap.t =
-      let fn (_,r) = !r in
-      StrMap.map fn Stdlib.(!boolean_flags)
-    in
-    saved := {verbose; loggers; bflags} :: !saved
-
-  (** [apply st] restores the setting in [st]. *)
-  let apply : t -> unit =
-    fun {verbose=v; loggers=l; bflags=f} ->
-    (* Reset verbosity level. *)
-    verbose := v;
-    (* Reset debugging flags. *)
-    log_enabled := false;
-    let reset logger =
-      let v = try List.assoc logger.logger_key l with Not_found -> false in
-      logger.logger_enabled := v; if v then log_enabled := true;
-    in
-    List.iter reset Stdlib.(!loggers);
-    (* Reset boolean flags. *)
-    let reset k (_,r) =
-      try r := StrMap.find k f
-      with Not_found -> ()
-    in
-    StrMap.iter reset Stdlib.(!boolean_flags)
-
-  (** [pop ()] restores the settings saved by [push_state], removing it
-      from [saved_state]. *)
-  let pop : unit -> unit = fun () ->
-    let e =
-      match !saved with
-      | [] -> failwith "[Console.pop_state] not well-bracketed."
-      | e::s -> saved := s; e
-    in
-    apply e
-end

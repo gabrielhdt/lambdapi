@@ -13,7 +13,7 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open Console
+open Error
 open Files
 open Pos
 open Syntax

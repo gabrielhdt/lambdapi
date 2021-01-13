@@ -4,7 +4,7 @@ open! Lplib
 open Lplib.Extra
 
 open Timed
-open Console
+open Error
 open Terms
 open Sign
 open Pos
@@ -375,10 +375,10 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
         | Some (ts, pe) -> ts, pe
       in
       (* Initialize proof state. *)
-      Console.State.push ();
+      Debug_console.State.push ();
       (* Build finalizer. *)
       let finalize ss ps =
-        Console.State.pop ();
+        Debug_console.State.pop ();
         match pe.elt with
         | P_proof_abort ->
             (* Just ignore the command with a warning. *)

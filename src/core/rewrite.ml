@@ -6,7 +6,7 @@ open Timed
 open Pos
 open Terms
 open Basics
-open Console
+open Error
 open Print
 open Proof
 

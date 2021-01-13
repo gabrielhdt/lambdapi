@@ -1,7 +1,7 @@
 (** Generating constraints for type inference and type checking. *)
 
 open Timed
-open Console
+open Error
 open Terms
 open Print
 

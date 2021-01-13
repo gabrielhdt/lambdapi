@@ -5,7 +5,7 @@ open! Lplib
 open Cmdliner
 open Core
 open Files
-open Console
+open Error
 
 (** {3 Configuration type for common values} *)
 
@@ -48,7 +48,7 @@ let init : config -> unit = fun cfg ->
   Option.iter set_default_verbose cfg.verbose;
   no_wrn := cfg.no_warnings;
   set_default_debug cfg.debug;
-  Console.color := not cfg.no_colors;
+  Error.color := not cfg.no_colors;
   Handle.too_long := cfg.too_long;
   (* Log some configuration data. *)
   if Timed.(!log_enabled) then
@@ -124,7 +124,7 @@ let no_warnings : bool Term.t =
 let debug : string Term.t =
   let descs =
     let fn (k, d) = Printf.sprintf "$(b,\"%c\") (for %s)" k d in
-    String.concat ", " (List.map fn (Console.log_summary ()))
+    String.concat ", " (List.map fn (Error.log_summary ()))
   in
   let doc =
     Printf.sprintf

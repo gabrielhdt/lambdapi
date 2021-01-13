@@ -2,7 +2,7 @@ open! Lplib
 
 open Timed
 open Core
-open Console
+open Error
 open Files
 
 (** Representation of a single command (abstract). *)
@@ -62,7 +62,7 @@ let set_initial_time : unit -> unit = fun _ ->
   Stdlib.(t0 := Time.save ())
 
 let initial_state : file_path -> state = fun fname ->
-  Console.reset_default ();
+  Debug_console.reset_default ();
   Time.restore Stdlib.(!t0);
   Package.apply_config fname;
   let mp = Files.file_to_module fname in

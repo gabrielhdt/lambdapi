@@ -3,7 +3,7 @@
 open! Lplib
 
 open Timed
-open Console
+open Error
 open Terms
 open Print
 

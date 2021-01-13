@@ -5,7 +5,8 @@ open Lplib.Extra
 
 open Timed
 open Sign
-open Console
+open Error
+open Debug_console
 open Files
 
 (** [gen_obj] indicates whether we should generate object files when compiling
@@ -113,7 +114,7 @@ let _ =
     (* Save the current console state. *)
     State.push ();
     (* Restore the console state to default for compiling. *)
-    Console.reset_default ();
+    Debug_console.reset_default ();
     (* Compile and go back to previous state. *)
     try
       ignore (compile false mp);
@@ -133,7 +134,7 @@ end = struct
 
   (* [pure_apply_cfg ?lm ?st f] is function [f] but pure (without side
      effects).  The side effects taken into account occur in
-     {!val:Console.State.t}, {!val:Files.lib_mappings} and in the meta
+     {!val:Error.State.t}, {!val:Files.lib_mappings} and in the meta
      variable counter {!module:Terms.Meta}. Arguments [?lm] allows to set the
      library mappings and [?st] sets the state. *)
   let pure_apply_cfg : ?lm:string -> ?st:State.t -> ('a -> 'b) -> 'a -> 'b =

@@ -2,7 +2,7 @@
 
 open! Lplib
 
-open Console
+open Error
 open Terms
 open Pos
 open Syntax

@@ -12,7 +12,7 @@
 open! Lplib
 open Timed
 open Pos
-open Console
+open Error
 open Terms
 open Print
 open Syntax

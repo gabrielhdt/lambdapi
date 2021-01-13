@@ -6,7 +6,7 @@ open Lplib.Base
 open Timed
 open Terms
 open Print
-open Console
+open Error
 open Pos
 
 (** Type of goals. *)
