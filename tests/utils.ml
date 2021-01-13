@@ -22,7 +22,7 @@ let bool_ss = Sig_state.of_sign bool_sign
 let test_hrs () =
   let buf = Buffer.create 16 in
   let fmt = Format.formatter_of_buffer buf in
-  Hrs.to_HRS fmt bool_sign;
+  Competitor_format.Hrs.to_HRS fmt bool_sign;
   (* TODO: make more precise test (equality between results for instance). *)
   Alcotest.(check bool) "bool as HRS not empty" (Buffer.contents buf <> "") true
 
@@ -30,7 +30,7 @@ let test_hrs () =
 let test_xtc () =
   let buf = Buffer.create 16 in
   let fmt = Format.formatter_of_buffer buf in
-  Xtc.to_XTC fmt bool_sign;
+  Competitor_format.Xtc.to_XTC fmt bool_sign;
   Alcotest.(check bool) "bool as XTC not empty" (Buffer.contents buf <> "") true
 
 (** Decision tree of regular symbol. *)
