@@ -5,8 +5,8 @@ open Lplib.Extra
 
 open Cmdliner
 open Core
-open Files
-open Error
+open File_management.Files
+open File_management.Error
 open Version
 
 (* NOTE only standard [Stdlib] references here. *)
@@ -47,7 +47,7 @@ let check_cmd : Config.t -> int option -> bool -> string list -> unit =
     in
     List.iter handle files
   in
-  Error.handle_exceptions run
+  File_management.Error.handle_exceptions run
 
 (** Running the parsing mode. *)
 let parse_cmd : Config.t -> string list -> unit = fun cfg files ->
@@ -59,18 +59,18 @@ let parse_cmd : Config.t -> string list -> unit = fun cfg files ->
     let handle file = Time.restore time; ignore (Compile.parse_file file) in
     List.iter handle files
   in
-  Error.handle_exceptions run
+  File_management.Error.handle_exceptions run
 
 (** Running the pretty-printing mode. *)
 let beautify_cmd : Config.t -> string -> unit = fun cfg file ->
   let run _ = Config.init cfg; Pretty.beautify (Compile.parse_file file) in
-  Error.handle_exceptions run
+  File_management.Error.handle_exceptions run
 
 (** Running the LSP server. *)
 let lsp_server_cmd : Config.t -> bool -> string -> unit =
     fun cfg standard_lsp lsp_log_file ->
   let run _ = Config.init cfg; Lsp.Lp_lsp.main standard_lsp lsp_log_file in
-  Error.handle_exceptions run
+  File_management.Error.handle_exceptions run
 
 (** Printing a decision tree. *)
 let decision_tree_cmd : Config.t -> (Syntax.p_module_path * string) -> unit =
@@ -80,7 +80,7 @@ let decision_tree_cmd : Config.t -> (Syntax.p_module_path * string) -> unit =
     (* By default, search for a package from the current working directory. *)
     let pth = Sys.getcwd () in
     let pth = Filename.concat pth "." in
-    Package.apply_config pth;
+    File_management.Package.apply_config pth;
     Config.init cfg;
     let sym =
       let sign = Compile.compile false (List.map fst mp) in
@@ -92,7 +92,7 @@ let decision_tree_cmd : Config.t -> (Syntax.p_module_path * string) -> unit =
           fatal_no_pos "Symbol \"%s\" not found in ghost modules." sym
       else
         try
-          Sig_state.find_sym ~prt:true ~prv:true false ss (Pos.none (mp, sym))
+          Sig_state.find_sym ~prt:true ~prv:true false ss (File_management.Pos.none (mp, sym))
         with Not_found ->
           fatal_no_pos "Symbol \"%s\" not found in module \"%a\"."
             sym Path.pp (List.map fst mp)
@@ -103,7 +103,7 @@ let decision_tree_cmd : Config.t -> (Syntax.p_module_path * string) -> unit =
     else
       out 0 "%a" Tree_graphviz.to_dot sym
   in
-  Error.handle_exceptions run
+  File_management.Error.handle_exceptions run
 
 (** {3 Command line argument parsing} *)
 
@@ -155,16 +155,16 @@ let qsym : (Syntax.p_module_path * string) Term.t =
             let id = String.sub s ind (String.length s - ind) in
             Ok(mp @ [(last, false)], id)
         | Error(p) ->
-            let msg = Format.sprintf "Parse error at %s." (Pos.to_string p) in
+            let msg = Format.sprintf "Parse error at %s." (File_management.Pos.to_string p) in
             Error(`Msg(msg))
       else
         match Parser.parse_qident s with
         | Ok({elt; _}) -> Ok(elt)
         | Error(p) ->
-            let msg = Format.sprintf "Parse error at %s." (Pos.to_string p) in
+            let msg = Format.sprintf "Parse error at %s." (File_management.Pos.to_string p) in
             Error(`Msg(msg))
     in
-    let print fmt qid = Pretty.qident fmt (Pos.none qid) in
+    let print fmt qid = Pretty.qident fmt (File_management.Pos.none qid) in
     Arg.conv (parse, print)
   in
   let doc = "Fully qualified symbol name with dot separated identifiers." in

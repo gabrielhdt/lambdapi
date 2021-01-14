@@ -1,0 +1,5 @@
+(library
+ (name file_management)
+ (public_name lambdapi.file_management)
+ (modules :standard)
+ (libraries unix stdlib-shims timed bindlib earley.core why3 lplib))

@@ -17,7 +17,7 @@ module LSP = Lsp_base
 
 (* exception NoPosition of string *)
 
-let interval_of_pos : Pos.pos -> Range.t = fun p ->
+let interval_of_pos : File_management.Pos.pos -> Range.t = fun p ->
   let open Range in
   let data = Lazy.force p in
   let start : point = make_point data.start_line data.start_col in
@@ -28,7 +28,7 @@ type doc_node =
   { ast   : Pure.Command.t
   ; exec  : bool
   (*; tactics : Proof.Tactic.t list*)
-  ; goals : (Proof.Goal.t list * Pos.popt) list
+  ; goals : (Proof.Goal.t list * File_management.Pos.popt) list
   }
 
 (* Private. A doc is a list of nodes for now. The first element in
@@ -134,12 +134,12 @@ let close_doc _modname = ()
 
 let dummy_loc =
   Lazy.from_val
-    Pos.{ fname = None
-        ; start_line = 1
-        ; start_col = 1
-        ; end_line = 2
-        ; end_col = 2
-        }
+    File_management.Pos.{ fname = None
+                        ; start_line = 1
+                        ; start_col = 1
+                        ; end_line = 2
+                        ; end_col = 2
+  }
 
 (** Update document identifier range map *)
 let update_rangemap doc_spans =

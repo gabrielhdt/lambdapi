@@ -2,9 +2,8 @@
 
 open Timed
 open Lplib.Extra
-open Error
 
-
+open File_management.Error
 
 (** [reset_default ()] resets the verbosity level and the state of the loggers
     to their default value (configurable by the user with command line flags).
@@ -76,7 +75,7 @@ module State = struct
   let pop : unit -> unit = fun () ->
     let e =
       match !saved with
-      | [] -> failwith "[Error.pop_state] not well-bracketed."
+      | [] -> failwith "[File_management.pop_state] not well-bracketed."
       | e::s -> saved := s; e
     in
     apply e

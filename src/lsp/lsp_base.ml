@@ -11,7 +11,7 @@
 (************************************************************************)
 
 open Core
-
+   
 (* Whether to send extended lsp messages *)
 let std_protocol = ref true
 
@@ -30,8 +30,8 @@ let mk_reply ~id ~result =
 let mk_event m p   =
   `Assoc [ "jsonrpc", `String "2.0"; "method", `String m; "params", `Assoc p ]
 
-let mk_range (p : Pos.pos) : J.t =
-  let open Pos in
+let mk_range (p : File_management.Pos.pos) : J.t =
+  let open File_management.Pos in
   let {start_line=line1; start_col=col1; end_line=line2; end_col=col2; _} =
     Lazy.force p
   in
@@ -68,7 +68,7 @@ let json_of_goals goals =
     ]
 
 let mk_diagnostic
-      ((p : Pos.pos), (lvl : int), (msg : string), (goals : _ option)) : J.t =
+      ((p : File_management.Pos.pos), (lvl : int), (msg : string), (goals : _ option)) : J.t =
   let goals = json_of_goals goals in
   let range = mk_range p in
   `Assoc (mk_extra ["goal_info", goals] @

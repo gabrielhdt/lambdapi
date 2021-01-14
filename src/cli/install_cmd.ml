@@ -1,7 +1,6 @@
 open Cmdliner
-open Core
-open Files
-open Error
+open File_management.Files
+open File_management.Error
 
 let run_command : bool -> string -> unit = fun dry_run cmd ->
   if dry_run then out 1 "%s\n" cmd else
@@ -21,23 +20,23 @@ let run_install : Config.t -> bool -> string list -> unit =
     let install file =
       Time.restore time;
       let dest =
-        if Filename.basename file = Package.pkg_file then
+        if Filename.basename file = File_management.Package.pkg_file then
           begin
             (* Install package file at the root path. *)
-            let path = Package.((read file).root_path) in
+            let path = File_management.Package.((read file).root_path) in
             let lib_root =
               match Stdlib.(!lib_root) with
               | None -> assert false
               | Some(p) -> p
             in
             let dir = List.fold_left Filename.concat lib_root path in
-            Filename.concat dir Package.pkg_file
+            Filename.concat dir File_management.Package.pkg_file
           end
         else
           begin
             (* Source or object file, find out expected destination. *)
-            Package.apply_config file;
-            Files.install_path file
+            File_management.Package.apply_config file;
+            File_management.Files.install_path file
           end
       in
       (* Create directories as needed for [dest]. *)
@@ -56,7 +55,7 @@ let run_install : Config.t -> bool -> string list -> unit =
     in
     List.iter install files
   in
-  Error.handle_exceptions run
+  File_management.Error.handle_exceptions run
 
 let run_uninstall : Config.t -> bool -> string -> unit =
     fun cfg dry_run pkg_file ->
@@ -64,18 +63,18 @@ let run_uninstall : Config.t -> bool -> string -> unit =
     Config.init cfg;
     (* Read the package configuration file for the package to uninstall. *)
     let (pkg_name, pkg_root_path) =
-      let pkg_config = Package.read pkg_file in
-      Package.(pkg_config.package_name, pkg_config.root_path)
+      let pkg_config = File_management.Package.read pkg_file in
+      File_management.Package.(pkg_config.package_name, pkg_config.root_path)
     in
     (* Compute the expected installation directory. *)
     let lib_root = match !lib_root with None -> assert false | Some(p) -> p in
     let pkg_dir = List.fold_left Filename.concat lib_root pkg_root_path in
-    let pkg_file = Filename.concat pkg_dir Package.pkg_file in
+    let pkg_file = Filename.concat pkg_dir File_management.Package.pkg_file in
     (* Check that a package is indeed installed there. *)
     if not (Sys.file_exists pkg_file) then
       fatal_no_pos "Specified package is not installed.";
     (* Check that the installed package has the expected name. *)
-    let installed_name = Package.((read pkg_file).package_name) in
+    let installed_name = File_management.Package.((read pkg_file).package_name) in
     if pkg_name <> installed_name then
       fatal_no_pos "Unexpected package [%s] installed under the same \
         root path intend for specified package [%s]." installed_name pkg_name;
@@ -83,7 +82,7 @@ let run_uninstall : Config.t -> bool -> string -> unit =
     let cmd = "rm -r " ^ Filename.quote pkg_dir in
     run_command dry_run cmd
   in
-  Error.handle_exceptions run
+  File_management.Error.handle_exceptions run
 
 let dry_run : bool Term.t =
   let doc =
@@ -96,7 +95,7 @@ let pkg_file : string Term.t =
   let doc =
     Printf.sprintf
       "Path to the package configuration file $(b,%s) corresponding to the \
-       package that should be uninstalled." Package.pkg_file
+       package that should be uninstalled." File_management.Package.pkg_file
   in
   Arg.(required & pos 0 (some non_dir_file) None & info [] ~docv:"FILE" ~doc)
 
@@ -106,7 +105,8 @@ let files : string list Term.t =
       "Source file with the [%s] extension (or with the [%s] extension when \
        using the legacy Dedukti syntax), object file with the [%s] extension,
        or package configuration file $(b,%s)."
-       src_extension legacy_src_extension obj_extension Package.pkg_file
+      src_extension legacy_src_extension obj_extension
+      File_management.Package.pkg_file
   in
   Arg.(value & (pos_all non_dir_file []) & info [] ~docv:"FILE" ~doc)
 

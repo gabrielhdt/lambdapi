@@ -3,7 +3,7 @@
 open! Lplib
 
 open Timed
-open Error
+open File_management.Error
 open Terms
 open Print
 
@@ -78,7 +78,7 @@ type index_tbl = (string, int) Hashtbl.t
     pre-rule [pr] is provided to give access to these variables and also their
     expected arities. *)
 let symb_to_tenv
-    : Scope.pre_rule Pos.loc -> sym list -> index_tbl -> term -> tbox =
+    : Scope.pre_rule File_management.Pos.loc -> sym list -> index_tbl -> term -> tbox =
   fun {elt={pr_vars=vars;pr_arities=arities;_};pos} syms htbl t ->
   let rec symb_to_tenv t =
     log_subj "symb_to_tenv %a" pp_term t;
@@ -127,7 +127,7 @@ let symb_to_tenv
 (** [check_rule r] checks whether the pre-rule [r] is well-typed in
    signature state [ss] and then construct the corresponding rule. Note that
    [Fatal] is raised in case of error. *)
-let check_rule : Scope.pre_rule Pos.loc -> rule = fun ({pos; elt} as pr) ->
+let check_rule : Scope.pre_rule File_management.Pos.loc -> rule = fun ({pos; elt} as pr) ->
   let Scope.{pr_sym = s ; pr_lhs = lhs ; pr_vars = vars
             ; pr_rhs = rhs_vars; pr_arities = arities
             ; pr_xvars_nb = xvars ; _} = elt

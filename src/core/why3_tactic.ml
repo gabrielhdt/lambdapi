@@ -3,7 +3,7 @@
 open! Lplib
 open Lplib.Extra
 
-open Error
+open File_management.Error
 open Terms
 open Timed
 open Print
@@ -44,7 +44,7 @@ type config =
   ; symb_not : sym (** Not(¬) symbol.            *) }
 
 (** [get_config ss pos] build the configuration using [ss]. *)
-let get_config : Sig_state.t -> Pos.popt -> config = fun ss pos ->
+let get_config : Sig_state.t -> File_management.Pos.popt -> config = fun ss pos ->
   let builtin = Builtin.get ss pos in
   { symb_P   = builtin "P"
   ; symb_T   = builtin "T"
@@ -105,7 +105,7 @@ let translate_term : config -> cnst_table -> term ->
 
 (** [encode ss pos hs g] translates the hypotheses [hs] and the goal [g]
     into Why3 terms, to construct a Why3 task. *)
-let encode : Sig_state.t -> Pos.popt -> Env.env -> term -> Why3.Task.task =
+let encode : Sig_state.t -> File_management.Pos.popt -> Env.env -> term -> Why3.Task.task =
   fun ss pos hs g ->
   let cfg = get_config ss pos in
   let (constants, hypothesis) =
@@ -139,7 +139,7 @@ let encode : Sig_state.t -> Pos.popt -> Env.env -> term -> Why3.Task.task =
 
 (** [run_task tsk pos prover_name] Run the task [tsk] with the specified
     prover named [prover_name] and return the answer of the prover. *)
-let run_task : Why3.Task.task -> Pos.popt -> string -> bool =
+let run_task : Why3.Task.task -> File_management.Pos.popt -> string -> bool =
     fun tsk pos prover_name ->
   (* Filter the set of why3 provers. *)
   let filter = Why3.Whyconf.parse_filter_prover prover_name in
@@ -180,7 +180,7 @@ let run_task : Why3.Task.task -> Pos.popt -> string -> bool =
     If the prover succeeded to prove the goal, then this is reflected by a new
     axiom that is added to signature [ss]. *)
 let handle :
-  Sig_state.t -> Pos.popt -> string option -> Proof.goal_typ -> term =
+  Sig_state.t -> File_management.Pos.popt -> string option -> Proof.goal_typ -> term =
   fun ss pos prover_name {goal_meta = m; goal_hyps = hyps; goal_type = trm} ->
   (* Get the name of the prover. *)
   let prover_name = Option.get !default_prover prover_name in
@@ -195,7 +195,7 @@ let handle :
   (* Add the axiom to the current signature. *)
   let a =
     Sign.add_symbol ss.signature Privat Const Eager
-      (Pos.none axiom_name) !(m.meta_type) []
+      (File_management.Pos.none axiom_name) !(m.meta_type) []
   in
   if !log_enabled then log_why3 "axiom [%s] created" axiom_name;
   (* Return the variable terms of each item in the context. *)

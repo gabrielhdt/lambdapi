@@ -3,8 +3,8 @@
 open! Lplib
 open Lplib.Extra
 
-open Error
-open Pos
+open File_management.Error
+open File_management.Pos
 open Syntax
 open Terms
 open Env
@@ -173,7 +173,7 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
   (* Build the application of [h] to [args], inserting implicit arguments. *)
   and add_impl env loc h impl args =
     let appl_p_term t u = _Appl t (scope env u) in
-    let appl_meta t = _Appl t (scope_head env (Pos.none P_Wild)) in
+    let appl_meta t = _Appl t (scope_head env (File_management.Pos.none P_Wild)) in
     match (impl, args) with
     (* The remaining arguments are all explicit. *)
     | ([]         , _      ) -> List.fold_left appl_p_term h args
@@ -634,7 +634,7 @@ let scope_rule : bool -> sig_state -> p_rule -> pre_rule loc = fun ur ss r ->
       { pr_sym = sym ; pr_lhs ; pr_vars ; pr_rhs ; pr_arities
       ; pr_names = lhs_names ; pr_xvars_nb=0 }
   in
-  Pos.make r.pos prerule
+  File_management.Pos.make r.pos prerule
 
 (** [scope_pattern ss env t] turns a parser-level term [t] into an actual term
     that will correspond to selection pattern (rewrite tactic). *)

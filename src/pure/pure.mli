@@ -3,7 +3,8 @@
 open Lplib
 
 open Core
-open Files
+open! File_management
+open File_management.Files
 
 (** Abstract representation of a command (top-level item). *)
 module Command : sig

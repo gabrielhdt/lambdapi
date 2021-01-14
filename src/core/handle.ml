@@ -4,11 +4,11 @@ open! Lplib
 open Lplib.Extra
 
 open Timed
-open Error
+open File_management.Error
 open Terms
 open Sign
-open Pos
-open Files
+open File_management.Pos
+open File_management.Files
 open Syntax
 open Sig_state
 open Scope
@@ -80,7 +80,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
   fun ms ->
   let die (ms: p_modifier list) =
     let modifier oc (m: p_modifier) =
-      Format.fprintf oc "%a:\"%a\"" Pos.print_short m.pos Pretty.modifier m
+      Format.fprintf oc "%a:\"%a\"" File_management.Pos.print_short m.pos Pretty.modifier m
     in
     fatal_no_pos "%a" (List.pp modifier "; ") ms
   in
@@ -152,7 +152,7 @@ let handle_inductive_symbol :
   if Sign.mem ss.signature x.elt then
     fatal x.pos "Symbol [%s] already exists." x.elt;
   (* Desugaring of arguments of [a]. *)
-  let a = if xs = [] then a else Pos.none (P_Prod(xs, a)) in
+  let a = if xs = [] then a else File_management.Pos.none (P_Prod(xs, a)) in
   (* Obtaining the implicitness of arguments. *)
   let impl = Scope.get_implicitness a in
   (* We scope the type of the declaration. *)
@@ -174,11 +174,11 @@ let handle_inductive_symbol :
     do not work on this structure directly,  although they act on the contents
     of its [pdata_p_state] field. *)
 type proof_data =
-  { pdata_stmt_pos : Pos.popt (** Position of the declared symbol. *)
+  { pdata_stmt_pos : File_management.Pos.popt (** File_management.Position of the declared symbol. *)
   ; pdata_p_state  : proof_state (** Proof state. *)
   ; pdata_tactics  : p_tactic list (** Tactics. *)
   ; pdata_finalize : sig_state -> proof_state -> sig_state (** Finalizer. *)
-  ; pdata_end_pos  : Pos.popt (** Position of the proof's terminator. *)
+  ; pdata_end_pos  : File_management.Pos.popt (** File_management.Position of the proof's terminator. *)
   ; pdata_expo     : Terms.expo (** Allowed exposition of symbols in the proof
                                    script. *) }
 
@@ -198,7 +198,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
       let ps = List.map (List.map fst) ps in
       (List.fold_left (handle_require b cmd.pos) ss ps, None)
   | P_require_as(p,id) ->
-      let id = Pos.make id.pos (fst id.elt) in
+      let id = File_management.Pos.make id.pos (fst id.elt) in
       (handle_require_as cmd.pos ss (List.map fst p) id, None)
   | P_open(ps) ->
       let ps = List.map (List.map fst) ps in
@@ -273,7 +273,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
             {expo = e;
              prop = Defin;
              mstrat = Eager;
-             ident = Pos.make cmd.pos rec_name;
+             ident = File_management.Pos.make cmd.pos rec_name;
              typ = rec_typ;
              impl = [];
              def = None}
@@ -333,7 +333,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
         | Some pt ->
             let pt =
               if p_sym_arg = [] then pt
-              else Pos.make p_sym_nam.pos (P_Abst(p_sym_arg, pt))
+              else File_management.Pos.make p_sym_nam.pos (P_Abst(p_sym_arg, pt))
             in
             Some pt, Some (scope_basic expo pt)
         | None -> None, None
@@ -345,7 +345,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
         | Some(a) ->
             let a =
               if p_sym_arg = [] then a
-              else Pos.make p_sym_nam.pos (P_Prod(p_sym_arg,a))
+              else File_management.Pos.make p_sym_nam.pos (P_Prod(p_sym_arg,a))
             in
             (Some(a), Scope.get_implicitness a)
       in
@@ -371,7 +371,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
       (* Get tactics and proof end. *)
       let ts, pe =
         match p_sym_prf with
-        | None -> [], Pos.make (Pos.end_pos pos) P_proof_end
+        | None -> [], File_management.Pos.make (File_management.Pos.end_pos pos) P_proof_end
         | Some (ts, pe) -> ts, pe
       in
       (* Initialize proof state. *)
@@ -438,7 +438,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
       let ss =
         let with_path : Path.t -> qident -> qident = fun path qid ->
           let path = List.map (fun s -> (s, false)) path in
-          Pos.make qid.pos (path, snd qid.elt)
+          File_management.Pos.make qid.pos (path, snd qid.elt)
         in
         match cfg with
         | P_config_builtin(s,qid) ->

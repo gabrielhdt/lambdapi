@@ -11,8 +11,8 @@
 
 open! Lplib
 open Timed
-open Pos
-open Error
+open File_management.Pos
+open File_management.Error
 open Terms
 open Print
 open Syntax
@@ -31,7 +31,7 @@ type config =
                         Interpretation of propositions as types. *) }
 
 (** [get_config ss pos] build the configuration using [ss]. *)
-let get_config : Sig_state.t -> Pos.popt -> config = fun ss pos ->
+let get_config : Sig_state.t -> File_management.Pos.popt -> config = fun ss pos ->
   let builtin = Builtin.get ss pos in
   { symb_Prop = builtin "Prop"
   ; symb_prf  = builtin "P" }

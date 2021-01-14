@@ -254,7 +254,7 @@ module CM = struct
     ; slot      : int
     (** Index of next slot to use in [vars] array to store variables. *)
     ; positions : arg list
-    (** Positions of the elements of the matrix in the initial term. Note that
+    (** File_management.Positions of the elements of the matrix in the initial term. Note that
         we rely on the order relation used in sets. *) }
 
   (** Available operations on clause matrices.  Every operation corresponds to

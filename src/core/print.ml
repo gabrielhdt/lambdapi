@@ -11,7 +11,7 @@ open Lplib.Extra
 
 open Timed
 open Terms
-open Error
+open File_management.Error
 open Syntax
 open Sig_state
 
@@ -23,16 +23,16 @@ let log_prnt = log_prnt.logger
 let sig_state : sig_state ref = ref Sig_state.dummy
 
 (** Flag controling the printing of the domains of λ-abstractions. *)
-let print_domains : bool ref = Error.register_flag "print_domains" false
+let print_domains : bool ref = File_management.Error.register_flag "print_domains" false
 
 (** Flag controling the printing of implicit arguments. *)
-let print_implicits : bool ref = Error.register_flag "print_implicits" false
+let print_implicits : bool ref = File_management.Error.register_flag "print_implicits" false
 
 (** Flag controling the printing of implicit arguments. *)
-let print_meta_type : bool ref = Error.register_flag "print_meta_type" false
+let print_meta_type : bool ref = File_management.Error.register_flag "print_meta_type" false
 
 (** Flag controlling the printing of the context in unification. *)
-let print_contexts : bool ref = Error.register_flag "print_contexts" false
+let print_contexts : bool ref = File_management.Error.register_flag "print_contexts" false
 
 let pp_prop : prop pp = fun oc p ->
   match p with
@@ -71,8 +71,8 @@ let pp_hint : pp_hint pp = fun oc pp_hint ->
 
 (** [qualified s] prints symbol [s] fully qualified to channel [oc]. *)
 let pp_qualified : sym pp = fun oc s ->
-  match Files.PathMap.find_opt s.sym_path (!sig_state).path_map with
-  | None -> Format.fprintf oc "%a.%s" Files.Path.pp s.sym_path s.sym_name
+  match File_management.Files.PathMap.find_opt s.sym_path (!sig_state).path_map with
+  | None -> Format.fprintf oc "%a.%s" File_management.Files.Path.pp s.sym_path s.sym_name
   | Some alias -> Format.fprintf oc "%s.%s" alias s.sym_name
 
 (** Get the printing hint of a symbol. *)
@@ -82,7 +82,7 @@ let get_pp_hint : sym -> pp_hint = fun s ->
 (** [pp_symbol oc s] prints the name of the symbol [s] to channel [oc]. *)
 let pp_symbol : sym pp = fun oc s ->
   if SymMap.mem s (!sig_state).pp_hints
-     || Files.Path.compare s.sym_path (!sig_state).signature.sign_path = 0
+     || File_management.Files.Path.compare s.sym_path (!sig_state).signature.sign_path = 0
   then Format.pp_print_string oc s.sym_name
   else pp_qualified oc s
 

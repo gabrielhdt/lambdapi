@@ -1,7 +1,6 @@
 open Cmdliner
-open Core
-open Error
-open Files
+open File_management.Error
+open File_management.Files
 
 let with_file : string -> (out_channel -> unit) -> unit = fun file fn ->
   let oc = open_out file in fn oc; close_out oc
@@ -27,7 +26,7 @@ let write_makefile : out_channel -> unit = fun oc ->
      .SUFFIXES: .lp .lpo\n\
      \n\
      .lp.lpo:\n\
-     \tlambdapi check --gen-obj $<\n%!" Package.pkg_file Package.pkg_file
+     \tlambdapi check --gen-obj $<\n%!" File_management.Package.pkg_file File_management.Package.pkg_file
 
 let write_ex_nat : out_channel -> unit = fun oc ->
   Printf.fprintf oc
@@ -79,14 +78,14 @@ let run : Path.t -> unit = fun root_path ->
       Printf.fprintf oc "package_name = %s\n" pkg_name;
       Printf.fprintf oc "root_path    = %s\n" (String.concat "." root_path)
     in
-    let pkg_file = Filename.concat pkg_name Package.pkg_file in
+    let pkg_file = Filename.concat pkg_name File_management.Package.pkg_file in
     with_file pkg_file write_pkg_file;
     (* Write the Makefile and example file. *)
     with_file (Filename.concat pkg_name "Makefile") write_makefile;
     with_file (Filename.concat pkg_name "nat.lp") write_ex_nat;
     with_file (Filename.concat pkg_name "main.lp") (write_ex_main root_path)
   in
-  Error.handle_exceptions run
+  File_management.Error.handle_exceptions run
 
 let root_path : Path.t Term.t =
   let doc =

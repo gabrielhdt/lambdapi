@@ -1,15 +1,15 @@
 (** Implementation of the rewrite tactic. *)
 
 open! Lplib
-
+  
 open Timed
-open Pos
+open File_management.Pos
 open Terms
 open Basics
-open Error
+open File_management.Error
 open Print
 open Proof
-
+   
 (** Logging function for the rewrite tactic. *)
 let log_rewr = new_logger 'r' "rewr" "the rewrite tactic"
 let log_rewr = log_rewr.logger

@@ -5,8 +5,8 @@ open Lplib.Extra
 
 open Timed
 open Terms
-open Error
-open Pos
+open File_management.Error
+open File_management.Pos
 open Sig_state
 
 (** [get pos map name] returns the symbol mapped to the “builtin symbol” named

@@ -5,7 +5,7 @@
     qualified to be a "ghost" signature. *)
 
 open Timed
-open Files
+open File_management.Files
 open Terms
 open Syntax
 
@@ -20,7 +20,7 @@ let path = Path.ghost "unif_rule"
 let sign : Sign.t =
   let dummy = Sign.dummy () in
   let s = {dummy with Sign.sign_path = path} in
-  Sign.loaded := Files.PathMap.add path s !(Sign.loaded);
+  Sign.loaded := File_management.Files.PathMap.add path s !(Sign.loaded);
   s
 
 (** Symbol representing an atomic unification problem. The term [equiv t
@@ -28,9 +28,9 @@ let sign : Sign.t =
     made of only one unification. *)
 let equiv : sym =
   let path = List.map (fun s -> (s, false)) path in
-  let bo = ("≡", Assoc_none, 1.1, Pos.none (path, "#equiv")) in
+  let bo = ("≡", Assoc_none, 1.1, File_management.Pos.none (path, "#equiv")) in
   let sym =
-    Sign.add_symbol sign Public Defin Eager (Pos.none "#equiv") Kind []
+    Sign.add_symbol sign Public Defin Eager (File_management.Pos.none "#equiv") Kind []
   in
   Sign.add_binop sign "≡" (sym, bo);
   sym
@@ -41,9 +41,9 @@ let equiv : sym =
     [t ≡ u; v ≡ w; ...]. *)
 let cons : sym =
   let path = List.map (fun s -> (s, false)) path in
-  let bo = (";", Assoc_right, 1.0, Pos.none (path, "#cons")) in
+  let bo = (";", Assoc_right, 1.0, File_management.Pos.none (path, "#cons")) in
   let sym =
-    Sign.add_symbol sign Public Defin Eager (Pos.none "#cons") Kind []
+    Sign.add_symbol sign Public Defin Eager (File_management.Pos.none "#cons") Kind []
   in
   Sign.add_binop sign ";" (sym, bo);
   sym
@@ -64,7 +64,7 @@ let rec unpack : term -> (term * term) list = fun eqs ->
 
 (** [p_unpack eqs] is [unpack eqs] on syntax-level equivalences [eqs]. *)
 let rec p_unpack : p_term -> (p_term * p_term) list = fun eqs ->
-  let id s = snd s.Pos.elt in
+  let id s = snd s.File_management.Pos.elt in
   match Syntax.p_get_args eqs with
   | ({elt=P_Iden(s, _); _}, [v; w]) ->
       if id s = "#cons" then

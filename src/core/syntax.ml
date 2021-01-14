@@ -3,7 +3,7 @@
 open Lplib
 open Lplib.Base
 
-open Pos
+open File_management.Pos
 
 (** Representation of a (located) identifier. *)
 type ident = strloc
@@ -95,30 +95,30 @@ type p_inductive = (ident * p_term * (ident * p_term) list) loc
 (** Module to create p_term's with no positions. *)
 module P  = struct
   let iden : string -> p_term = fun s ->
-    Pos.none (P_Iden(Pos.none ([], s), true))
+    none (P_Iden(none ([], s), true))
 
   let patt : string -> p_term array option -> p_term = fun s ts ->
-    Pos.none (P_Patt (Some (Pos.none s), ts))
+    none (P_Patt (Some (none s), ts))
 
   let patt0 : string -> p_term = fun s -> patt s None
 
   let appl : p_term -> p_term -> p_term = fun t1 t2 ->
-    Pos.none (P_Appl(t1, t2))
+    none (P_Appl(t1, t2))
 
   let appl_list : p_term -> p_term list -> p_term = List.fold_left appl
 
-  let wild = Pos.none P_Wild
+  let wild = none P_Wild
 
   let rec appl_wild : p_term -> int -> p_term = fun t i ->
       if i <= 0 then t else appl_wild (appl t wild) (i-1)
 
   let abst : ident option -> p_term -> p_term = fun idopt t ->
-    Pos.none (P_Abst([[idopt],None,false], t))
+    none (P_Abst([[idopt],None,false], t))
 
   let abst_list : ident option list -> p_term -> p_term = fun idopts t ->
     List.fold_right abst idopts t
 
-  let rule : p_patt -> p_term -> p_rule = fun l r -> Pos.none (l,r)
+  let rule : p_patt -> p_term -> p_rule = fun l r -> none (l,r)
 end
 
 (** Rewrite pattern specification. *)

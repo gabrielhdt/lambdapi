@@ -6,13 +6,13 @@ open Lplib.Extra
 open Core (* Lambdapi core *)
 
 let _ =
-  Files.set_lib_root None;
-  match Package.find_config "." with
+  File_management.Files.set_lib_root None;
+  match File_management.Package.find_config "." with
   | None -> assert false
-  | Some(f) -> Package.apply_config f
+  | Some(f) -> File_management.Package.apply_config f
 
 let compile (fname: string): Sign.t =
-  Compile.compile false (Files.file_to_module fname)
+  Compile.compile false (File_management.Files.file_to_module fname)
 
 let bool_file = "OK/bool.lp"
 let bool_sign = compile bool_file

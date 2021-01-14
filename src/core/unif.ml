@@ -4,7 +4,7 @@ open! Lplib
 open Lplib.Extra
 
 open Timed
-open Error
+open File_management.Error
 open Terms
 open Basics
 open Env

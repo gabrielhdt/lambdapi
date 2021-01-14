@@ -2,9 +2,9 @@
 
 open! Lplib
 
-open Error
+open File_management.Error
 open Terms
-open Pos
+open File_management.Pos
 open Syntax
 open Proof
 open Print

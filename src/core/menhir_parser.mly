@@ -3,7 +3,8 @@
 open! Lplib
 
 open Timed
-open Pos
+open! File_management
+open File_management.Pos
 open Syntax
 open Legacy_lexer
 open Parser
@@ -41,7 +42,7 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
   let (ctx, lhs, rhs) = r.elt in
   (* Check for (deprecated) annotations in the context. *)
   let get_var (x,ao) =
-    let open Error in
+    let open File_management.Error in
     let fn a = wrn a.pos "Ignored type annotation." in
     (if !verbose > 1 then Option.iter fn ao); x
   in
@@ -51,7 +52,7 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
   in
   (* Find the maximum number of arguments a variable is applied to. *)
   (* Using [fatal] is OK here as long as it is called with term positions. *)
-  let fatal = Error.fatal in
+  let fatal = File_management.Error.fatal in
   let arity = Hashtbl.create 7 in
   let rec compute_arities env t =
     let (h, args) = get_args t in

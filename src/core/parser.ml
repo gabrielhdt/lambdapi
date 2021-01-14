@@ -7,8 +7,10 @@ open Lplib.Extra
 
 open Earley_core
 open Syntax
+
+open! File_management
 open Files
-open Pos
+open File_management.Pos
 
 (** {b NOTE} we maintain the invariant that errors reported by the parser have
     a position. To help enforce that, we avoid opening the [Error] module so
@@ -17,7 +19,7 @@ open Pos
 
 (** [parser_fatal loc fmt] is a wrapper for [Error.fatal] that enforces that
     the error has an attached source code position. *)
-let parser_fatal : Pos.pos -> ('a,'b) Error.koutfmt -> 'a = fun loc fmt ->
+let parser_fatal : pos -> ('a,'b) Error.koutfmt -> 'a = fun loc fmt ->
   Error.fatal (Some(loc)) fmt
 
 #define LOCATE locate
@@ -135,7 +137,7 @@ let forbidden_in_ops =
     [p] and report possible errors at location [loc].  This operation requires
     the module [p] to be loaded (i.e., compiled). The declared identifiers are
     also retrieved at the same time. *)
-let get_ops : Pos.pos -> p_module_path -> unit = fun loc p ->
+let get_ops : pos -> p_module_path -> unit = fun loc p ->
   let p = List.map fst p in
   let sign =
     try PathMap.find p Timed.(!(Sign.loaded)) with Not_found ->
@@ -208,7 +210,7 @@ let _with_       = KW.create "with"
 (** [sanity_check pos s] checks that the token [s] is appropriate for an infix
     operator or a declared identifier. If it is not the case, then the [Fatal]
     exception is raised. *)
-let sanity_check : Pos.pos -> string -> unit = fun loc s ->
+let sanity_check : pos -> string -> unit = fun loc s ->
   (* Of course, the empty string and keywords are forbidden. *)
   if s = "" then parser_fatal loc "Invalid token (empty).";
   if KW.mem s then parser_fatal loc "Invalid token (reserved).";
@@ -492,30 +494,30 @@ let term = term PFunc
 
 (** [rule] is a parser for a single rewriting rule. *)
 let parser rule =
-  | l:term "↪" r:term -> Pos.in_pos _loc (l, r)
+  | l:term "↪" r:term -> File_management.Pos.in_pos _loc (l, r)
 
 (** [inductive] is a parser for a single inductive type. *)
 let parser inductive =
   |     i:ident ":" t:term "≔"
     c:{ "|" ident ":" term }*
-        -> Pos.in_pos _loc (i, t, c)
+        -> in_pos _loc (i, t, c)
 
 (** [unif_rule] is a parser for unification rules. *)
 let parser unif_rule =
   | l:{term "≡" term} "↪" r:{term "≡" term} rs:{";" term "≡" term}* ->
-      let equiv = Pos.none (P_Iden(Pos.none ([], "#equiv"), true)) in
-      let p_appl t u = Pos.none (P_Appl(t, u)) in
+      let equiv = none (P_Iden(none ([], "#equiv"), true)) in
+      let p_appl t u = none (P_Appl(t, u)) in
       let mkequiv (l, r) = p_appl (p_appl equiv l) r in
       let lhs = mkequiv l in
       match rs with
-      | [] -> Pos.in_pos _loc (lhs, mkequiv r)
+      | [] -> in_pos _loc (lhs, mkequiv r)
       | _  ->
-          let cons = Pos.none (P_Iden(Pos.none ([], "#cons"), true)) in
+          let cons = none (P_Iden(none ([], "#cons"), true)) in
           let rs = List.rev_map mkequiv (r::rs) in
           let (r, rs) = (List.hd rs, List.tl rs) in
           let cat eqlst eq = p_appl (p_appl cons eq) eqlst in
           let rhs = List.fold_left cat r rs in
-          Pos.in_pos _loc (lhs, rhs)
+          in_pos _loc (lhs, rhs)
 
 (** [rw_patt_spec] is a parser for a rewrite pattern specification. *)
 let parser rw_patt_spec =
@@ -542,53 +544,53 @@ let parser assertion =
 (** [query] parses a query. *)
 let parser query =
   | _set_ "verbose" i:nat_lit ->
-      Pos.in_pos _loc (P_query_verbose(i))
+      in_pos _loc (P_query_verbose(i))
   | _set_ "debug" b:{'+' -> true | '-' -> false} - s:alpha ->
-      Pos.in_pos _loc (P_query_debug(b, s))
+      in_pos _loc (P_query_debug(b, s))
   | _set_ "flag" s:string_lit b:{"on" -> true | "off" -> false} ->
-      Pos.in_pos _loc (P_query_flag(s, b))
+      in_pos _loc (P_query_flag(s, b))
   | mf:assert_must_fail a:assertion ->
-      Pos.in_pos _loc (P_query_assert(mf,a))
+      in_pos _loc (P_query_assert(mf,a))
   | mf:assert_must_fail ps:arg* "⊢" t:term "≡" u:term ->
-      let ps_t = Pos.in_pos _loc (P_Abst(ps,t)) in
-      let ps_u = Pos.in_pos _loc (P_Abst(ps,u)) in
+      let ps_t = in_pos _loc (P_Abst(ps,t)) in
+      let ps_u = in_pos _loc (P_Abst(ps,u)) in
       let assert_conv = P_assert_conv(ps_t,ps_u) in
-      Pos.in_pos _loc (P_query_assert(mf,assert_conv))
+      in_pos _loc (P_query_assert(mf,assert_conv))
   | mf:assert_must_fail ps:arg* "⊢" t:term ":" u:term ->
-      let ps_t = Pos.in_pos _loc (P_Abst(ps,t)) in
-      let ps_u = Pos.in_pos _loc (P_Prod(ps,u)) in
+      let ps_t = in_pos _loc (P_Abst(ps,t)) in
+      let ps_u = in_pos _loc (P_Prod(ps,u)) in
       let assert_typing = P_assert_typing(ps_t,ps_u) in
-      Pos.in_pos _loc (P_query_assert(mf,assert_typing))
+      in_pos _loc (P_query_assert(mf,assert_typing))
   | _type_ t:term ->
       let c = {strategy = NONE; steps = None} in
-      Pos.in_pos _loc (P_query_infer(t,c))
+      in_pos _loc (P_query_infer(t,c))
   | _compute_ t:term ->
       let c = {strategy = SNF; steps = None} in
-      Pos.in_pos _loc (P_query_normalize(t,c))
+      in_pos _loc (P_query_normalize(t,c))
   | _set_ "prover" s:string_lit ->
-      Pos.in_pos _loc (P_query_prover(s))
+      in_pos _loc (P_query_prover(s))
   | _set_ "prover_timeout" n:nat_lit ->
-      Pos.in_pos _loc (P_query_prover_timeout(n))
+      in_pos _loc (P_query_prover_timeout(n))
   | _print_ qid:qident? ->
-      Pos.in_pos _loc (P_query_print qid)
+      in_pos _loc (P_query_print qid)
   | _proofterm_ ->
-      Pos.in_pos _loc P_query_proofterm
+      in_pos _loc P_query_proofterm
 
 (** [tactic] is a parser for a single tactic. *)
 let parser tactic =
-  | _refine_ t:term             -> Pos.in_pos _loc (P_tac_refine(t))
-  | _intro_ xs:arg_ident+       -> Pos.in_pos _loc (P_tac_intro(xs))
-  | _apply_ t:term              -> Pos.in_pos _loc (P_tac_apply(t))
-  | _simpl_                     -> Pos.in_pos _loc P_tac_simpl
+  | _refine_ t:term             -> in_pos _loc (P_tac_refine(t))
+  | _intro_ xs:arg_ident+       -> in_pos _loc (P_tac_intro(xs))
+  | _apply_ t:term              -> in_pos _loc (P_tac_apply(t))
+  | _simpl_                     -> in_pos _loc P_tac_simpl
   | _rewrite_ b:{"-" -> false}?[true] p:rw_patt? t:term
-                                -> Pos.in_pos _loc (P_tac_rewrite(b,p,t))
-  | _refl_                      -> Pos.in_pos _loc P_tac_refl
-  | _sym_                       -> Pos.in_pos _loc P_tac_sym
-  | i:{_:_focus_ nat_lit}       -> Pos.in_pos _loc (P_tac_focus(i))
-  | _why3_ s:string_lit?        -> Pos.in_pos _loc (P_tac_why3(s))
-  | q:query                     -> Pos.in_pos _loc (P_tac_query(q))
-  | _fail_                      -> Pos.in_pos _loc P_tac_fail
-  | _solve_                     -> Pos.in_pos _loc P_tac_solve
+                                -> in_pos _loc (P_tac_rewrite(b,p,t))
+  | _refl_                      -> in_pos _loc P_tac_refl
+  | _sym_                       -> in_pos _loc P_tac_sym
+  | i:{_:_focus_ nat_lit}       -> in_pos _loc (P_tac_focus(i))
+  | _why3_ s:string_lit?        -> in_pos _loc (P_tac_why3(s))
+  | q:query                     -> in_pos _loc (P_tac_query(q))
+  | _fail_                      -> in_pos _loc P_tac_fail
+  | _solve_                     -> in_pos _loc P_tac_solve
 
 (** [proof_end] is a parser for a proof terminator. *)
 let parser proof_end =
@@ -625,7 +627,7 @@ let parser config =
       P_config_quant(qid)
 
 let parser proof =
-  _begin_ ts:tactic* e:proof_end -> (ts, Pos.in_pos _loc_e e)
+  _begin_ ts:tactic* e:proof_end -> (ts, in_pos _loc_e e)
 
 (** [!require mp] can be used to require the compilation of a module [mp] when
     it is required as a dependency. This has the effect of importing notations
@@ -636,7 +638,7 @@ let require : (Path.t -> unit) Stdlib.ref = ref (fun _ -> ())
 (** [do_require pos path] is a wrapper for [!require path], that takes care of
     possible exceptions. Errors are reported at given position [pos],  keeping
     as much information as possible in the error message. *)
-let do_require : Pos.pos -> p_module_path -> unit = fun loc path ->
+let do_require : pos -> p_module_path -> unit = fun loc path ->
   let path = List.map fst path in
   let local_fatal fmt =
     let fmt = "Error when loading module [%a].\n" ^^ fmt in
@@ -658,7 +660,7 @@ let do_require : Pos.pos -> p_module_path -> unit = fun loc path ->
   (* We attach our position to errors comming from the outside. *)
   try reentrant_call () with
   | Error.Fatal(None     , msg) -> local_fatal "%s" msg
-  | Error.Fatal(Some(pos), msg) -> local_fatal "[%a] %s" Pos.print pos msg
+  | Error.Fatal(Some(pos), msg) -> local_fatal "[%a] %s" print pos msg
   | e                             -> local_fatal "Uncaught exception: [%s]"
                                        (Printexc.to_string e)
 
@@ -669,7 +671,7 @@ let parser cmd =
          List.iter fn ps; P_require(o,ps)
   | _require_ p:path _as_ n:path_elem
       -> do_require _loc p;
-         P_require_as(p, Pos.in_pos _loc_n n)
+         P_require_as(p, in_pos _loc_n n)
   | _open_ ps:path+
       -> List.iter (get_ops _loc) ps;
          P_open(ps)
@@ -704,7 +706,7 @@ let parse_file : string -> ast = fun fname ->
   Prefix.reset unops; Prefix.reset binops; Prefix.reset declared_ids;
   try Earley.parse_file cmds blank fname
   with Earley.Parse_error(buf,pos) ->
-    let loc = Pos.locate buf pos buf pos in
+    let loc = locate buf pos buf pos in
     parser_fatal loc "Parse error."
 
 (** [parse_string fname str] attempts to parse the string [str] to obtain
@@ -716,7 +718,7 @@ let parse_string : string -> string -> ast = fun fname str ->
   Prefix.reset unops; Prefix.reset binops; Prefix.reset declared_ids;
   try Earley.parse_string ~filename:fname cmds blank str
   with Earley.Parse_error(buf,pos) ->
-    let loc = Pos.locate buf pos buf pos in
+    let loc = File_management.Pos.locate buf pos buf pos in
     parser_fatal loc "Parse error."
 
 (** [parse_qident str] attempts to parse the string [str] to obtain a
@@ -725,4 +727,4 @@ let parse_string : string -> string -> ast = fun fname str ->
 let parse_qident : string -> (qident, pos) result = fun str ->
   Prefix.reset unops; Prefix.reset binops; Prefix.reset declared_ids;
   try Ok(Earley.parse_string ~filename:"" qident blank str)
-  with Earley.Parse_error(buf, pos) -> Error(Pos.locate buf pos buf pos)
+  with Earley.Parse_error(buf, pos) -> Error(locate buf pos buf pos)

@@ -20,7 +20,7 @@ type t = Syntax.p_command
 
 (*Messy pattern matching to get the qidents throughout the document*)
 let rec qidents_of_bound_p_args (args : Syntax.p_args) :
-    Syntax.qident list * Pos.strloc list =
+    Syntax.qident list * File_management.Pos.strloc list =
   match args with
   | idents, None, _ -> ([], pmap idents)
   | idents, Some ty, _ -> (qidents_of_p_term ty, pmap idents)
@@ -84,7 +84,7 @@ and qidents_of_p_tactic (term: Syntax.p_tactic) =
   | Syntax.P_tac_refine pt -> qidents_of_p_term pt
   | Syntax.P_tac_apply pt -> qidents_of_p_term pt
   | Syntax.P_tac_rewrite (_, rwpat_lo, pt) ->
-    let rwqids = Option.map_default (fun x -> qidents_of_rw_patt x.Pos.elt)
+    let rwqids = Option.map_default (fun x -> qidents_of_rw_patt x.File_management.Pos.elt)
                    [] rwpat_lo in
     let ptqids = qidents_of_p_term pt in
     rwqids @ ptqids

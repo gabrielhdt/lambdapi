@@ -2,13 +2,13 @@
 
 open! Lplib
 open Lplib.Extra
-
+   
 open Timed
-open Error
-open Files
+open File_management.Error
+open File_management.Files
 open Terms
 open Syntax
-open Pos
+open File_management.Pos
 
 (** Representation of an inductive type *)
 type inductive =
@@ -18,7 +18,7 @@ type inductive =
 (** Representation of a signature. It roughly corresponds to a set of symbols,
     defined in a single module (or file). *)
 type t =
-  { sign_symbols  : (sym * Pos.popt) StrMap.t ref
+  { sign_symbols  : (sym * File_management.Pos.popt) StrMap.t ref
   ; sign_path     : Path.t
   ; sign_deps     : (string * rule) list PathMap.t ref
   ; sign_builtins : sym StrMap.t ref

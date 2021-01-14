@@ -6,8 +6,8 @@ open Lplib.Base
 open Timed
 open Terms
 open Print
-open Error
-open Pos
+open File_management.Error
+open File_management.Pos
 
 (** Type of goals. *)
 type goal_typ =

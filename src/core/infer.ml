@@ -1,7 +1,7 @@
 (** Generating constraints for type inference and type checking. *)
 
 open Timed
-open Error
+open File_management.Error
 open Terms
 open Print
 
@@ -200,7 +200,7 @@ type solver = problem -> constr list option
 (** [infer solve pos ctx t] returns a type for [t] in context [ctx] if there
    is one, using the constraint solver [solve].
 @raise Fatal otherwise. [ctx] must well sorted. *)
-let infer : solver -> Pos.popt -> ctxt -> term -> term =
+let infer : solver -> File_management.Pos.popt -> ctxt -> term -> term =
   fun solve_noexn pos ctx t ->
   match infer_noexn ctx t with
   | None -> fatal pos "[%a] is not typable." pp_term t
@@ -215,7 +215,7 @@ let infer : solver -> Pos.popt -> ctxt -> term -> term =
 (** [check pos ctx t a] checks that [t] has type [a] in context [ctx],
 using the constraint solver [solve].
 @raise Fatal otherwise. [ctx] must well sorted. *)
-let check : solver -> Pos.popt -> ctxt -> term -> term -> unit =
+let check : solver -> File_management.Pos.popt -> ctxt -> term -> term -> unit =
   fun solve_noexn pos ctx t a ->
   match check_noexn ctx t a with
   | None -> fatal pos "[%a] does not have type [%a]." pp_term t pp_term a
@@ -230,7 +230,7 @@ let check : solver -> Pos.popt -> ctxt -> term -> term -> unit =
 (** [check_sort pos ctx t] checks that [t] has type [Type] or [Kind] in
    context [ctx], using the constraint solver [solve].
 @raise Fatal otherwise. [ctx] must well sorted. *)
-let check_sort : solver -> Pos.popt -> ctxt -> term -> unit
+let check_sort : solver -> File_management.Pos.popt -> ctxt -> term -> unit
   = fun solve_noexn pos ctx t ->
   match infer_noexn ctx t with
   | None -> fatal pos "[%a] is not typable." pp_term t

@@ -2,14 +2,14 @@ open! Lplib
 
 open Timed
 open Core
-open Error
-open Files
+open File_management.Error
+open File_management.Files
 
 (** Representation of a single command (abstract). *)
 module Command = struct
   type t = Syntax.p_command
   let equal = Syntax.eq_p_command
-  let get_pos c = Pos.(c.pos)
+  let get_pos c = File_management.Pos.(c.pos)
   let get_qidents = Cmd_analysis.get_qidents
 end
 
@@ -17,13 +17,13 @@ end
 module Tactic = struct
   type t = Syntax.p_tactic
   let equal = Syntax.eq_p_tactic
-  let get_pos t = Pos.(t.pos)
+  let get_pos t = File_management.Pos.(t.pos)
 end
 
 type state = Time.t * Sig_state.t
 
 (** Exception raised by [parse_text] on error. *)
-exception Parse_error of Pos.pos * string
+exception Parse_error of File_management.Pos.pos * string
 
 let parse_text : state -> string -> string -> Command.t list * state =
     fun (t,st) fname s ->
@@ -49,12 +49,12 @@ let current_goals : proof_state -> Proof.Goal.t list = fun (_,_,p,_,_) ->
 
 type command_result =
   | Cmd_OK    of state
-  | Cmd_Proof of proof_state * Tactic.t list * Pos.popt * Pos.popt
-  | Cmd_Error of Pos.popt option * string
+  | Cmd_Proof of proof_state * Tactic.t list * File_management.Pos.popt * File_management.Pos.popt
+  | Cmd_Error of File_management.Pos.popt option * string
 
 type tactic_result =
   | Tac_OK    of proof_state
-  | Tac_Error of Pos.popt option * string
+  | Tac_Error of File_management.Pos.popt option * string
 
 let t0 : Time.t Stdlib.ref = Stdlib.ref (Time.save ())
 
@@ -64,8 +64,8 @@ let set_initial_time : unit -> unit = fun _ ->
 let initial_state : file_path -> state = fun fname ->
   Debug_console.reset_default ();
   Time.restore Stdlib.(!t0);
-  Package.apply_config fname;
-  let mp = Files.file_to_module fname in
+  File_management.Package.apply_config fname;
+  let mp = File_management.Files.file_to_module fname in
   Sign.loading := [mp];
   let sign = Sig_state.create_sign mp in
   Sign.loaded  := PathMap.add mp sign !Sign.loaded;
@@ -98,5 +98,5 @@ let end_proof : proof_state -> command_result = fun s ->
   let (_, ss, p, finalize, _) = s in
   try Cmd_OK(Time.save (), finalize ss p) with Fatal(p,m) -> Cmd_Error(p,m)
 
-let get_symbols : state -> (Terms.sym * Pos.popt) Extra.StrMap.t = fun s ->
+let get_symbols : state -> (Terms.sym * File_management.Pos.popt) Extra.StrMap.t = fun s ->
   (snd s).in_scope

@@ -4,7 +4,7 @@ open! Lplib
 open Lplib.Extra
 
 open Timed
-open Error
+open File_management.Error
 open Terms
 open Basics
 open Print
@@ -35,7 +35,7 @@ let log_conv = new_logger 'c' "conv" "conversion"
 let log_conv = log_conv.logger
 
 (** Convert modulo eta. *)
-let eta_equality : bool ref = Error.register_flag "eta_equality" false
+let eta_equality : bool ref = File_management.Error.register_flag "eta_equality" false
 
 (** Counter used to preserve physical equality in {!val:whnf}. *)
 let steps : int Stdlib.ref = Stdlib.ref 0

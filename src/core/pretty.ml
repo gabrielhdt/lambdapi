@@ -8,8 +8,8 @@
 open! Lplib
 open Lplib.Base
 
-open Error
-open Pos
+open File_management.Error
+open File_management.Pos
 open Syntax
 
 let string = Format.pp_print_string
@@ -24,16 +24,16 @@ let arg_ident : ident option pp = fun oc id ->
   | Some(id) -> ident oc id
   | None     -> string oc "_"
 
-let path_elt : Pos.popt -> (string * bool) pp = fun pos oc (s,b) ->
+let path_elt : File_management.Pos.popt -> (string * bool) pp = fun pos oc (s,b) ->
   if not b && Parser.KW.mem s then
     fatal pos "Module path member [%s] is a Lambdapi keyword." s;
   if b then Format.fprintf oc "{|%s|}" s else string oc s
 
 let qident : qident pp = fun oc qid ->
   List.iter (Format.fprintf oc "%a." (path_elt qid.pos)) (fst qid.elt);
-  ident oc (Pos.make qid.pos (snd qid.elt))
+  ident oc (File_management.Pos.make qid.pos (snd qid.elt))
 
-let path : Pos.popt -> p_module_path pp = fun pos ->
+let path : File_management.Pos.popt -> p_module_path pp = fun pos ->
   List.pp (path_elt pos) "."
 
 let modifier : p_modifier pp = fun oc {elt; _} ->

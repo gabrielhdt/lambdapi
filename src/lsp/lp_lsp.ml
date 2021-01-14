@@ -169,7 +169,7 @@ let in_range ?loc (line, pos) =
   match loc with
   | None -> false
   | Some loc ->
-      let { Pos.start_line ; start_col ; end_line ; end_col ; _ } =
+      let { File_management.Pos.start_line ; start_col ; end_line ; end_col ; _ } =
         Lazy.force loc in
     start_line - 1 < line && line < end_line - 1 ||
     (start_line - 1 = line && start_col <= pos) ||
@@ -181,7 +181,7 @@ let get_node_at_pos doc line pos =
       let loc = Pure.Command.get_pos ast in
       let res = in_range ?loc (line,pos) in
       let ls = Format.asprintf "%B l:%d p:%d / %a "
-                 res line pos Pos.print loc in
+                 res line pos File_management.Pos.print loc in
       LIO.log_error "get_node_at_pos" ("call: "^ls);
       res
     ) doc.Lp_doc.nodes
@@ -243,7 +243,7 @@ let do_definition ofmt ~id params =
     Extra.StrMap.bindings sym
     |> List.map (fun (key, (sym,pos)) ->
         Format.asprintf "{%s} / %s: @[%a@]"
-          key sym.Terms.sym_name Pos.print pos)
+          key sym.Terms.sym_name File_management.Pos.print pos)
     |> String.concat "\n"
   in
   LIO.log_error "symbol map" map_pp;
@@ -256,7 +256,7 @@ let do_definition ofmt ~id params =
       (* A JSON with the path towards the definition of the term
          and its position is returned
          /!\ : extension is fixed, only works for .lp files *)
-      mk_definfo Files.(module_to_file Terms.(term.sym_path)
+      mk_definfo File_management.Files.(module_to_file Terms.(term.sym_path)
       ^ src_extension) pos
   in
   let msg = LSP.mk_reply ~id ~result:sym_info in
@@ -314,7 +314,7 @@ let hover_symInfo ofmt ~id params =
     Extra.StrMap.bindings sym
     |> List.map (fun (key, (sym,pos)) ->
         Format.asprintf "{%s} / %s: @[%a@]"
-          key sym.Terms.sym_name Pos.print pos)
+          key sym.Terms.sym_name File_management.Pos.print pos)
     |> String.concat "\n"
   in
   LIO.log_error "symbol map" map_pp;
@@ -424,8 +424,8 @@ let main std log_file =
   (* XXX: Capture better / per sentence. *)
   let lp_oc = open_out "log-lp.txt" in
   let lp_fmt = F.formatter_of_out_channel lp_oc in
-  Error.out_fmt := lp_fmt;
-  Error.err_fmt := lp_fmt;
+  File_management.Error.out_fmt := lp_fmt;
+  File_management.Error.err_fmt := lp_fmt;
   (* Error.verbose := 4; *)
 
   let rec loop () =

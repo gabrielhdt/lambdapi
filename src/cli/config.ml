@@ -4,8 +4,8 @@ open! Lplib
 
 open Cmdliner
 open Core
-open Files
-open Error
+open File_management.Files
+open File_management.Error
 
 (** {3 Configuration type for common values} *)
 
@@ -43,21 +43,21 @@ let default_config =
 let init : config -> unit = fun cfg ->
   (* Set all the flags and configs. *)
   Compile.gen_obj := cfg.gen_obj;
-  Files.set_lib_root cfg.lib_root;
-  List.iter (fun (m,d) -> Files.new_lib_mapping (m ^ ":" ^ d)) cfg.map_dir;
+  File_management.Files.set_lib_root cfg.lib_root;
+  List.iter (fun (m,d) -> File_management.Files.new_lib_mapping (m ^ ":" ^ d)) cfg.map_dir;
   Option.iter set_default_verbose cfg.verbose;
   no_wrn := cfg.no_warnings;
   set_default_debug cfg.debug;
-  Error.color := not cfg.no_colors;
+  File_management.Error.color := not cfg.no_colors;
   Handle.too_long := cfg.too_long;
   (* Log some configuration data. *)
   if Timed.(!log_enabled) then
     begin
-      Files.log_file "running directory: [%s]" (Files.current_path ());
-      Files.log_file "library root path: [%s]"
+      File_management.Files.log_file "running directory: [%s]" (File_management.Files.current_path ());
+      File_management.Files.log_file "library root path: [%s]"
         (match !lib_root with None -> assert false | Some(p) -> p);
-      let fn = Files.log_file "mapping: [%a] → [%s]" Files.Path.pp in
-      Files.ModMap.iter fn (Files.current_mappings ())
+      let fn = File_management.Files.log_file "mapping: [%a] → [%s]" File_management.Files.Path.pp in
+      File_management.Files.ModMap.iter fn (File_management.Files.current_mappings ())
     end;
   (* Initialise the [Pure] interface (this must come last). *)
   Pure.set_initial_time ()
@@ -124,7 +124,7 @@ let no_warnings : bool Term.t =
 let debug : string Term.t =
   let descs =
     let fn (k, d) = Printf.sprintf "$(b,\"%c\") (for %s)" k d in
-    String.concat ", " (List.map fn (Error.log_summary ()))
+    String.concat ", " (List.map fn (File_management.Error.log_summary ()))
   in
   let doc =
     Printf.sprintf

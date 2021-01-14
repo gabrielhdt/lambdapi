@@ -13,9 +13,12 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open Error
+   
+open! File_management
+open File_management.Error
 open Files
-open Pos
+open File_management.Pos
+   
 open Syntax
 open Terms
 open Sign
@@ -44,7 +47,7 @@ let eq_pp_hint : pp_hint eq = fun h1 h2 ->
 (** State of the signature, including aliasing and accessible symbols. *)
 type sig_state =
   { signature : Sign.t                    (** Current signature.        *)
-  ; in_scope  : (sym * Pos.popt) StrMap.t (** Symbols in scope.         *)
+  ; in_scope  : (sym * File_management.Pos.popt) StrMap.t (** Symbols in scope.         *)
   ; aliases   : Path.t StrMap.t           (** Established aliases.      *)
   ; path_map  : string PathMap.t          (** Reverse map of [aliases]. *)
   ; builtins  : sym StrMap.t              (** Builtin symbols.          *)
@@ -72,7 +75,7 @@ let remove_pp_hint :
    mapping for [s] if [s] is mapped to [(name,h')] in [map], and [eq_pp_hint h
    h' = true]. *)
 let remove_pp_hint_eq :
-      (sym * Pos.popt) StrMap.t -> string -> pp_hint -> pp_hint SymMap.t
+      (sym * File_management.Pos.popt) StrMap.t -> string -> pp_hint -> pp_hint SymMap.t
       -> pp_hint SymMap.t =
   fun in_scope name h pp_hints ->
   try
@@ -153,7 +156,7 @@ let add_quant : sig_state -> sym -> sig_state = fun ss sym ->
 (** [update_pp_hints_from_symbols ss sign pp_hints] generates a new pp_hint
    map from [pp_hints] when adding the symbols of [sign]. *)
 let update_pp_hints_from_symbols :
-      (sym * Pos.popt) StrMap.t -> Sign.t -> pp_hint SymMap.t
+      (sym * File_management.Pos.popt) StrMap.t -> Sign.t -> pp_hint SymMap.t
       -> pp_hint SymMap.t =
   fun in_scope sign pp_hints ->
   let fn name (sym,_) pp_hints =
