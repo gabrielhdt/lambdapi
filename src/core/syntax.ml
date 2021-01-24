@@ -5,6 +5,35 @@ open Lplib.Base
 
 open File_management.Pos
 
+(** {3 Term (and symbol) representation} *)
+
+(** Symbol properties. *)
+type p_prop =
+  | P_Defin
+  (** The symbol is definable by rewriting rules. *)
+  | P_Const
+  (** The symbol cannot be defined. *)
+  | P_Injec
+  (** The symbol is definable but is assumed to be injective. *)
+
+(** Specify the visibility and usability of symbols outside their module. *)
+type p_expo =
+  | P_Public
+  (** Visible and usable everywhere. *)
+  | P_Protec
+  (** Visible everywhere but usable in LHS arguments only. *)
+  | P_Privat
+  (** Not visible and thus not usable. *)
+
+(** Pattern-matching strategy modifiers. *)
+type p_match_strat =
+  | P_Sequen
+  (** Rules are processed sequentially: a rule can be applied only if the
+      previous ones (in the order of declaration) cannot be. *)
+  | P_Eager
+  (** Any rule that filters a term can be applied (even if a rule defined
+      earlier filters the term as well). This is the default. *)
+   
 (** Representation of a (located) identifier. *)
 type ident = strloc
 
@@ -233,9 +262,9 @@ type p_config =
 
 (** Parser-level representation of modifiers. *)
 type p_modifier_aux =
-  | P_mstrat of Terms.match_strat (** pattern matching strategy *)
-  | P_expo of Terms.expo (** visibility of symbol outside its modules *)
-  | P_prop of Terms.prop (** symbol properties : constant, definable, ... *)
+  | P_mstrat of p_match_strat (** pattern matching strategy *)
+  | P_expo of p_expo (** visibility of symbol outside its modules *)
+  | P_prop of p_prop (** symbol properties : constant, definable, ... *)
   | P_opaq (** opacity *)
 
 type p_modifier = p_modifier_aux loc

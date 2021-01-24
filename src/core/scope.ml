@@ -9,7 +9,7 @@ open Syntax
 open Terms
 open Env
 open Sig_state
-open Rewrite
+(*open Rewrite*)
 
 (** Logging function for term scoping. *)
 let log_scop = new_logger 'o' "scop" "term scoping"
@@ -449,6 +449,23 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
   in
   scope env t
 
+let to_prop : p_prop -> prop = fun p ->
+  match p with
+  | P_Defin -> Defin
+  | P_Const -> Const
+  | P_Injec -> Injec
+  
+let to_expo : p_expo -> expo = fun e ->
+  match e with
+  | P_Public -> Public
+  | P_Protec -> Protec
+  | P_Privat -> Privat
+
+let to_match_strat : p_match_strat -> match_strat = fun m ->
+  match m with
+  | P_Sequen -> Sequen
+  | P_Eager  -> Eager
+              
 (** [scope ?exp ss env t] turns a parser-level term [t] into an actual term.
     The variables of the environment [env] may appear in [t]. The signature
     state [ss] is used to handle module aliasing according to [find_qid]. If
@@ -456,6 +473,7 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
     subterms. *)
 let scope_term : expo -> sig_state -> env -> p_term -> term =
   fun expo ss env t ->
+  (*let expo = p_expo_to_expo p_expo in*)
   let m = Stdlib.ref StrMap.empty in
   Bindlib.unbox (scope (M_Term(m, expo)) ss env t)
 
