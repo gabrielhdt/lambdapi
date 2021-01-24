@@ -1,0 +1,10 @@
+(library
+ (name parsing)
+ (public_name lambdapi.parsing)
+ (modules :standard)
+ (libraries unix stdlib-shims timed bindlib earley.core why3 lplib file_management))
+
+(ocamllex legacy_lexer)
+(menhir
+ (flags (--external-tokens Legacy_lexer))
+ (modules menhir_parser))
