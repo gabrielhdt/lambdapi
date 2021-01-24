@@ -443,6 +443,27 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
   in
   scope env t
 
+(** [to_prop p] converts [p], which has the type p_prop, to the type prop. *)
+let to_prop : p_prop -> prop = fun p ->
+  match p with
+  | P_Defin -> Defin
+  | P_Const -> Const
+  | P_Injec -> Injec
+ 
+(** [to_expo e] converts [e], which has the type p_expo, to the type expo. *)  
+let to_expo : p_expo -> expo = fun e ->
+  match e with
+  | P_Public -> Public
+  | P_Protec -> Protec
+  | P_Privat -> Privat
+
+(** [to_match_strat m] converts [m], which has the type p_match_strat, to the 
+    type match_strat. *)
+let to_match_strat : p_match_strat -> match_strat = fun m ->
+  match m with
+  | P_Sequen -> Sequen
+  | P_Eager  -> Eager
+
 (** [scope ?exp ss env t] turns a parser-level term [t] into an actual term.
     The variables of the environment [env] may appear in [t]. The signature
     state [ss] is used to handle module aliasing according to [find_qid]. If

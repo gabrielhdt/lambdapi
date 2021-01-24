@@ -95,7 +95,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one property modifier can be used, \
                    %d have been found: " (List.length prop);
         die prop
-    | [{elt=P_prop(p); _}] -> p
+    | [{elt=P_prop(p); _}] -> to_prop p
     | [] -> Defin
     | _ -> assert false
   in
@@ -106,7 +106,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one exposition marker can be used, \
                    %d have been found: " (List.length expo);
         die expo
-    | [{elt=P_expo(e); _}] -> e
+    | [{elt=P_expo(e); _}] -> to_expo e
     | [] -> Public
     | _ -> assert false
   in
@@ -117,7 +117,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one strategy modifier can be used, \
                    %d have been found: " (List.length mstrat);
         die mstrat
-    | [{elt=P_mstrat(s); _ }] -> s
+    | [{elt=P_mstrat(s); _ }] -> to_match_strat s
     | [] -> Eager
     | _ -> assert false
   in

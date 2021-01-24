@@ -205,11 +205,11 @@ ttactic: t=tactic SEMICOLON? { t }
 
 // Modifiers of declarations.
 modifier:
-  | CONSTANT { make_pos $loc (P_prop(Terms.Const)) }
-  | INJECTIVE { make_pos $loc (P_prop(Terms.Injec)) }
-  | PROTECTED { make_pos $loc (P_expo(Terms.Protec)) }
-  | PRIVATE { make_pos $loc (P_expo(Terms.Privat)) }
-  | SEQUENTIAL { make_pos $loc (P_mstrat(Terms.Sequen)) }
+  | CONSTANT { make_pos $loc (P_prop(P_Const)) }
+  | INJECTIVE { make_pos $loc (P_prop(P_Injec)) }
+  | PROTECTED { make_pos $loc (P_expo(P_Protec)) }
+  | PRIVATE { make_pos $loc (P_expo(P_Privat)) }
+  | SEQUENTIAL { make_pos $loc (P_mstrat(P_Sequen)) }
   | OPAQUE { make_pos $loc (P_opaq) }
 
 // Converts floats and integers to floats

@@ -244,7 +244,7 @@ command:
         match List.find_opt is_prop p_sym_mod with
         | Some(_) -> p_sym_mod
         | None -> (* we add the property "constant" *)
-           make_pos Lexing.(dummy_pos, dummy_pos) (P_prop(Const)) :: p_sym_mod
+           make_pos Lexing.(dummy_pos, dummy_pos) (P_prop(P_Const)) :: p_sym_mod
       in
       let p_sym_nam = make_pos $loc(s) s in
       let p_sym_typ = Some a in
@@ -383,8 +383,8 @@ param:
     }
 
 modifier:
-  | KW_PRV { make_pos $loc (P_expo(Terms.Privat)) }
-  | KW_INJ { make_pos $loc (P_prop(Terms.Injec)) }
+  | KW_PRV { make_pos $loc (P_expo(P_Privat)) }
+  | KW_INJ { make_pos $loc (P_prop(P_Injec)) }
 
 context_item:
   | x=ID ao=option(COLON a=term { a }) { (make_pos $loc(x) x, ao) }

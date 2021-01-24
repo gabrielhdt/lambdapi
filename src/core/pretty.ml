@@ -36,12 +36,29 @@ let qident : qident pp = fun ff {elt=(path,id); pos} ->
   List.iter (Format.fprintf ff "%a." (path_elt pos)) path;
   ident ff (Pos.make pos id)
 
-let modifier : p_modifier pp = fun ff {elt; _} ->
+let pp_prop : p_prop pp = fun oc p ->
+  match p with
+  | P_Defin -> ()
+  | P_Const -> Format.fprintf oc "constant "
+  | P_Injec -> Format.fprintf oc "injective "
+
+let pp_expo : p_expo pp = fun oc e ->
+  match e with
+  | P_Public -> ()
+  | P_Protec -> Format.fprintf oc "protected "
+  | P_Privat -> Format.fprintf oc "private "
+
+let pp_match_strat : p_match_strat pp = fun oc s ->
+  match s with
+  | P_Sequen -> Format.fprintf oc "sequential "
+  | P_Eager  -> ()
+           
+let modifier : p_modifier pp = fun oc {elt; _} ->
   match elt with
-  | P_expo(e) -> Print.pp_expo ff e
-  | P_mstrat(s) -> Print.pp_match_strat ff s
-  | P_prop(p) -> Print.pp_prop ff p
-  | P_opaq -> string ff "opaque "
+  | P_expo(e)   -> pp_expo oc e
+  | P_mstrat(s) -> pp_match_strat oc s
+  | P_prop(p)   -> pp_prop oc p
+  | P_opaq      -> string oc "opaque "
 
 let rec term : p_term pp = fun ff t ->
   let out fmt = Format.fprintf ff fmt in
