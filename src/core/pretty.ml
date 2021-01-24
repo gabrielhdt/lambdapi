@@ -15,7 +15,7 @@ open Syntax
 let string = Format.pp_print_string
 
 let ident : ident pp = fun ff {pos; elt} ->
-  if Parser.KW.mem elt then
+  if LpLexer.is_keyword elt then
     fatal pos "Identifier [%s] is a Lambdapi keyword." elt;
   string ff elt
 
@@ -25,7 +25,7 @@ let arg_ident : ident option pp = fun ff id ->
   | None     -> string ff "_"
 
 let path_elt : Pos.popt -> (string * bool) pp = fun pos ff (s,b) ->
-  if not b && Parser.KW.mem s then
+  if not b && LpLexer.is_keyword s then
     fatal pos "Module path member [%s] is a Lambdapi keyword." s;
   if b then Format.fprintf ff "{|%s|}" s else string ff s
 
@@ -60,31 +60,29 @@ let rec term : p_term pp = fun ff t ->
     | (P_Meta(x,ar)        , _    ) -> out "?%a%a" ident x env ar
     | (P_Patt(None   ,ar)  , _    ) -> out "$_%a" env ar
     | (P_Patt(Some(x),ar)  , _    ) -> out "$%a%a" ident x env ar
-    | (P_Appl(t,u)         , Parser.PAppl)
-    | (P_Appl(t,u)         , Parser.PFunc) -> out "%a %a" appl t atom u
-    | (P_Impl(a,b)         , Parser.PFunc) -> out "%a → %a" appl a func b
-    | (P_Abst(xs,t)        , Parser.PFunc) ->
+    | (P_Appl(t,u)         , `PAppl)
+    | (P_Appl(t,u)         , `PFunc) -> out "%a %a" appl t atom u
+    | (P_Impl(a,b)         , `PFunc) -> out "%a → %a" appl a func b
+    | (P_Abst(xs,t)        , `PFunc) ->
         out "λ%a, " args_list xs;
         let fn (ids,_,_) = List.for_all ((=) None) ids in
         let ec = !empty_context in
         empty_context := ec && List.for_all fn xs;
         out "%a" func t;
         empty_context := ec
-    | (P_Prod(xs,b)        , Parser.PFunc) ->
+    | (P_Prod(xs,b)        , `PFunc) ->
         out "Π%a, %a" args_list xs func b
-    | (P_LLet(x,xs,a,t,u)  , Parser.PFunc) ->
+    | (P_LLet(x,xs,a,t,u)  , `PFunc) ->
         out "@[<hov 2>let %a%a%a ≔@ %a@] in %a"
           ident x args_list xs annot a func t func u
     | (P_NLit(i)           , _    ) -> out "%i" i
-    | (P_UnaO((u,_,_),t)   , _    ) -> out "(%s %a)" u atom t
-    | (P_BinO(t,(b,_,_,_),u), _   ) -> out "(%a %s %a)" atom t b atom u
     (* We print minimal parentheses, and ignore the [Wrap] constructor. *)
     | (P_Wrap(t)           , _    ) -> out "%a" (pp p) t
     | (P_Expl(t)           , _    ) -> out "{%a}" func t
     | (_                   , _    ) -> out "(%a)" func t
-  and atom ff t = pp Parser.PAtom ff t
-  and appl ff t = pp Parser.PAppl ff t
-  and func ff t = pp Parser.PFunc ff t
+  and atom ff t = pp `PAtom ff t
+  and appl ff t = pp `PAppl ff t
+  and func ff t = pp `PFunc ff t
   in
   let rec toplevel _ t =
     match t.elt with
@@ -238,21 +236,20 @@ let command : p_command pp = fun ff cmd ->
   | P_set(P_config_binop(s,a,p,qid)) ->
       let a =
         match a with
-        | Assoc_none  -> ""
-        | Assoc_left  -> " left"
-        | Assoc_right -> " right"
+        | Pratter.Neither -> ""
+        | Pratter.Left -> " left"
+        | Pratter.Right -> " right"
       in
       out "set infix%s %f %S ≔ %a" a p s qident qid
   | P_set(P_config_unif_rule(ur)) ->
       out "set unif_rule %a" unif_rule ur
-  | P_set(P_config_ident(id)) ->
-      out "set declared %S" id
   | P_set(P_config_quant(qid)) ->
       out "set quantifier %a" qident qid
   | P_query(q) ->
      query ff q
 
-let ast : ast pp = fun ff cs -> List.pp command "\n" ff cs
+let ast : ast pp = fun ff ->
+  Stream.iter (fun c -> command ff c; Format.pp_print_newline ff ())
 
 (** [beautify cmds] pretty-prints the commands [cmds] to standard output. *)
 let beautify : ast -> unit = ast Format.std_formatter

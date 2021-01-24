@@ -15,12 +15,6 @@ type p_module_path = (string * bool) list
 (** Representation of a possibly qualified (and located) identifier. *)
 type qident = (p_module_path * string) loc
 
-(** Representation of the associativity of an infix operator. *)
-type assoc =
-  | Assoc_none
-  | Assoc_left
-  | Assoc_right
-
 (** The priority of an infix operator is a floating-point number. *)
 type priority = float
 
@@ -28,7 +22,7 @@ type priority = float
 type unop = string * priority * qident
 
 (** Representation of a binary operator. *)
-type binop = string * assoc * priority * qident
+type binop = string * Pratter.associativity * priority * qident
 
 (** Parser-level (located) term representation. *)
 type p_term = p_term_aux loc
@@ -55,10 +49,6 @@ and p_term_aux =
   (** Local let. *)
   | P_NLit of int
   (** Natural number literal. *)
-  | P_UnaO of unop * p_term
-  (** Unary (prefix) operator. *)
-  | P_BinO of p_term * binop * p_term
-  (** Binary operator. *)
   | P_Wrap of p_term
   (** Parentheses. *)
   | P_Expl of p_term
@@ -224,8 +214,6 @@ type p_config =
   (** Defines (or redefines) a unary operator (e.g., ["!"] or ["¬"]). *)
   | P_config_binop of binop
   (** Defines (or redefines) a binary operator (e.g., ["+"] or ["×"]). *)
-  | P_config_ident of string
-  (** Defines a new, valid identifier (e.g., ["σ"], ["€"] or ["ℕ"]). *)
   | P_config_quant of qident
   (** Defines a quantifier symbol (e.g., ["∀"], ["∃"]). *)
   | P_config_unif_rule of p_rule
@@ -278,7 +266,7 @@ type p_command_aux =
 type p_command = p_command_aux loc
 
 (** Top level AST returned by the parser. *)
-type ast = p_command list
+type ast = p_command Stream.t
 
 let eq_ident : ident eq = fun x1 x2 -> x1.elt = x2.elt
 
@@ -308,10 +296,6 @@ let rec eq_p_term : p_term eq = fun t1 t2 ->
   | (P_LLet(x1,xs1,a1,t1,u1), P_LLet(x2,xs2,a2,t2,u2)) ->
       eq_ident x1 x2 && Option.equal eq_p_term a1 a2 && eq_p_term t1 t2
       && eq_p_term u1 u2 && List.equal eq_p_args xs1 xs2
-  | (P_UnaO(u1,t1)       , P_UnaO(u2,t2)             ) ->
-      eq_unop u1 u2 && eq_p_term t1 t2
-  | (P_BinO(t1,b1,u1)    , P_BinO(t2,b2,u2)          ) ->
-      eq_binop b1 b2 && eq_p_term t1 t2 && eq_p_term u1 u2
   | (P_Wrap(t1)          , P_Wrap(t2)                ) ->
       eq_p_term t1 t2
   | (P_Expl(t1)          , P_Expl(t2)                ) ->
