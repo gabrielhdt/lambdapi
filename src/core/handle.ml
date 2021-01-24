@@ -5,11 +5,12 @@ open Lplib.Extra
 
 open Timed
 open File_management.Error
-open Terms
-open Sign
+open! Parsing
+open Parsing.Terms
+open Parsing.Sign
 open File_management.Pos
 open File_management.Files
-open Syntax
+open Parsing.Syntax
 open Sig_state
 open Scope
 open Print

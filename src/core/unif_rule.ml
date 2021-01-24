@@ -6,9 +6,11 @@
 
 open Timed
 open File_management.Files
-open Terms
-open Syntax
+open Parsing.Terms
+open Parsing.Syntax
 
+open! Parsing
+   
 (** Path of the module. *)
 let path = Path.ghost "unif_rule"
 
@@ -61,21 +63,6 @@ let rec unpack : term -> (term * term) list = fun eqs ->
       else if s == equiv then [(v, w)] else
       assert false (* Ill-formed term. *)
   | _                 -> assert false (* Ill-formed term. *)
-
-(** [p_unpack eqs] is [unpack eqs] on syntax-level equivalences [eqs]. *)
-let rec p_unpack : p_term -> (p_term * p_term) list = fun eqs ->
-  let id s = snd s.File_management.Pos.elt in
-  match Syntax.p_get_args eqs with
-  | ({elt=P_Iden(s, _); _}, [v; w]) ->
-      if id s = "#cons" then
-        match Syntax.p_get_args v with
-        | ({elt=P_Iden(e, _); _}, [t; u]) when id e = "#equiv" ->
-            (t, u) :: p_unpack w
-        | _                                                         ->
-            assert false (* Ill-formed term. *)
-      else if id s = "#equiv" then [(v, w)] else
-      assert false (* Ill-formed term. *)
-  | _                               -> assert false (* Ill-formed term. *)
 
 (** [is_ghost s] is true iff [s] is a symbol of the ghost signature. *)
 let is_ghost : sym -> bool = fun s -> s == equiv || s == cons

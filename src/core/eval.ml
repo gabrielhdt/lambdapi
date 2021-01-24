@@ -5,8 +5,9 @@ open Lplib.Extra
 
 open Timed
 open File_management.Error
-open Terms
-open Basics
+open! Parsing
+open Parsing.Terms
+open Parsing.Basics
 open Print
 
 (** The head-structure of a term t is:

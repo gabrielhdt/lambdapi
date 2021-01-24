@@ -146,6 +146,21 @@ let inductive : string -> p_inductive pp = fun kw oc i ->
 let equi : (p_term * p_term) pp = fun oc (l, r) ->
   Format.fprintf oc "@[<hov 3>%a ≡ %a@]@?" term l term r
 
+(** [p_unpack eqs] is [unpack eqs] on syntax-level equivalences [eqs]. *)
+let rec p_unpack : p_term -> (p_term * p_term) list = fun eqs ->
+  let id s = snd s.File_management.Pos.elt in
+  match Syntax.p_get_args eqs with
+  | ({elt=P_Iden(s, _); _}, [v; w]) ->
+      if id s = "#cons" then
+        match Syntax.p_get_args v with
+        | ({elt=P_Iden(e, _); _}, [t; u]) when id e = "#equiv" ->
+            (t, u) :: p_unpack w
+        | _                                                         ->
+            assert false (* Ill-formed term. *)
+      else if id s = "#equiv" then [(v, w)] else
+      assert false (* Ill-formed term. *)
+  | _                               -> assert false (* Ill-formed term. *)
+  
 let unif_rule : p_rule pp = fun oc r ->
   let (lhs, rhs) = r.elt in
   let lhs =
@@ -153,7 +168,7 @@ let unif_rule : p_rule pp = fun oc r ->
     | (_, [t; u]) -> (t, u)
     | _           -> assert false
   in
-  let eqs = Unif_rule.p_unpack rhs in
+  let eqs = p_unpack rhs in
   Format.fprintf oc "@[<hov 3>%a ↪ %a@]@?" equi lhs (List.pp equi ", ") eqs
 
 let proof_end : p_proof_end pp = fun oc {elt;_} ->

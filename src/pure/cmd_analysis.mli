@@ -10,7 +10,7 @@
 (* Status: Experimental                                                 *)
 (************************************************************************)
 
-open Core
+open Parsing
 
 type t = Syntax.p_command
 

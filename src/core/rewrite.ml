@@ -4,8 +4,9 @@ open! Lplib
   
 open Timed
 open File_management.Pos
-open Terms
-open Basics
+open Parsing.Terms
+open! Parsing
+open Parsing.Basics
 open File_management.Error
 open Print
 open Proof

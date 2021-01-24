@@ -4,7 +4,8 @@ open! Lplib
 open Lplib.Extra
 
 open Timed
-open Sign
+open! Parsing
+open Parsing.Sign
 open Debug_console
 open! File_management
 open File_management.Error

@@ -11,6 +11,7 @@
 (************************************************************************)
 
 open Core
+open Parsing
 open! Lplib
 
 module LSP = Lsp_base

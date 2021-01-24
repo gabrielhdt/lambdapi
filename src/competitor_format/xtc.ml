@@ -9,7 +9,8 @@ open Lplib.Extra
 
 open Timed
 open! Core
-open Terms
+open! Parsing
+open Parsing.Terms
 
 (** [print_sym oc s] outputs the fully qualified name of [s] to [oc]. Modules
     are separated with ["."]. *)
@@ -25,7 +26,7 @@ type symb_status = Object_level | Basic_type | Type_cstr
 let status : sym -> symb_status = fun s ->
   (* the argument [b] of [is_arrow_kind] is a boolean saying if we have
      already gone under a product *)
-  let rec is_arrow_kind : Core.Terms.term -> bool -> symb_status = fun t b ->
+  let rec is_arrow_kind : Terms.term -> bool -> symb_status = fun t b ->
     match t with
     | Prod(_,b) -> is_arrow_kind (snd (Bindlib.unbind b)) true
     | Type      -> if b then Type_cstr else Basic_type
@@ -120,7 +121,7 @@ let print_tl_rule : Format.formatter -> int -> sym -> rule -> unit =
 (** [get_vars s r] returns the list of variables used in the rule [r],
     in the form of a pair containing the name of the variable and its type,
     inferred by the solver. *)
-let get_vars : sym -> rule -> (string * Core.Terms.term) list = fun s r ->
+let get_vars : sym -> rule -> (string * Terms.term) list = fun s r ->
   let rule_ctx : tvar option array = Array.make (Array.length r.vars) None in
   let var_list : tvar list ref = ref [] in
   let rec subst_patt v t =

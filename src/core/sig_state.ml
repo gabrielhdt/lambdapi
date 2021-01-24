@@ -18,7 +18,8 @@ open! File_management
 open File_management.Error
 open Files
 open File_management.Pos
-   
+
+open! Parsing
 open Syntax
 open Terms
 open Sign

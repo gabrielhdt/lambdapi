@@ -4,7 +4,8 @@ open! Lplib
 
 open Timed
 open File_management.Error
-open Terms
+open! Parsing
+open Parsing.Terms
 open Print
 
 (** Logging function for typing. *)

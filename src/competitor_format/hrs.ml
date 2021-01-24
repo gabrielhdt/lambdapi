@@ -9,7 +9,8 @@ open Lplib.Extra
 
 open Timed
 open! Core
-open Terms
+open! Parsing
+open Parsing.Terms
 
 (** [print_sym oc s] outputs the fully qualified name of [s] to [oc]. The name
     is prefixed by ["c_"], and modules are separated with ["_"], not ["."]. *)

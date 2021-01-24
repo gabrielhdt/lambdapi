@@ -13,9 +13,9 @@ open! Lplib
 open Timed
 open File_management.Pos
 open File_management.Error
-open Terms
+open Parsing.Terms
 open Print
-open Syntax
+open Parsing.Syntax
 
 (** Logging function for generating of inductive principle. *)
 let log_ind = new_logger 'g' "indu" "generating induction principle"
@@ -43,10 +43,10 @@ let get_config : Sig_state.t -> File_management.Pos.popt -> config = fun ss pos 
 let gen_ind_typ_codom : popt -> sym -> (tbox list -> tbox) -> string -> tbox =
   fun pos ind_sym codom s ->
   let rec aux : tvar list -> term -> tbox = fun xs a ->
-    match Basics.get_args a with
+    match Parsing.Basics.get_args a with
     | (Type, _) -> codom (List.rev_map _Vari xs)
     | (Prod(a,b), _) ->
-        let (x,b) = Basics.unbind_name b s in
+        let (x,b) = Parsing.Basics.unbind_name b s in
         _Prod (lift a) (Bindlib.bind_var x (aux (x::xs) b))
     | _ -> fatal pos "The type of %a is not supported" pp_symbol ind_sym
   in aux [] !(ind_sym.sym_type)
@@ -171,7 +171,7 @@ let fold_cons_type
 
     : 'c =
   let rec fold : 'var list -> 'a -> term -> 'c = fun xs acc t ->
-    match Basics.get_args t with
+    match Parsing.Basics.get_args t with
     | (Symb(s), ts) ->
         if s == ind_sym then
           let pred_var,_,_ = List.assq ind_sym ind_pred_map in
@@ -179,10 +179,10 @@ let fold_cons_type
         else fatal pos "%a is not a constructor of %a"
                pp_symbol cons_sym pp_symbol ind_sym
     | (Prod(t,u), _) ->
-       let (x,u) = Basics.unbind_name u var_prefix in
+       let (x,u) = Parsing.Basics.unbind_name u var_prefix in
        let x = inj_var xs x in
        begin
-         match Basics.get_args t with
+         match Parsing.Basics.get_args t with
          | (Symb(s), ts) ->
              begin
                match List.assq_opt s ind_pred_map with
@@ -250,7 +250,7 @@ let gen_rec_types :
 
 (** [rec_name ind_sym] returns the name of the induction principle associated
    to the inductive type symbol [ind_sym]. *)
-let rec_name ind_sym = Parser.add_prefix "ind_" ind_sym.sym_name
+let rec_name ind_sym = Parsing.Parser.add_prefix "ind_" ind_sym.sym_name
 
 (** [iter_rec_rules pos ind_list rec_sym_list ind_pred_map] generates the
    recursor rules for the inductive type definition [ind_list] and associated

@@ -2,8 +2,8 @@
 
 open File_management.Error
 open File_management.Pos
-open Syntax
-open Terms
+open Parsing.Syntax
+open Parsing.Terms
 open Print
 open Proof
 

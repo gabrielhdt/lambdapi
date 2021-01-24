@@ -10,9 +10,9 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open Terms
+open Parsing.Terms
 open File_management.Error
-open Syntax
+open Parsing.Syntax
 open Sig_state
 
 (** Logging function for printing. *)
@@ -103,7 +103,7 @@ let nat_of_term : term -> int = fun t ->
   let zero = get_builtin "0" in
   let succ = get_builtin "+1" in
   let rec nat acc = fun t ->
-    match Basics.get_args t with
+    match Parsing.Basics.get_args t with
     | (Symb s, [u]) when s == succ -> nat (acc+1) u
     | (Symb s,  []) when s == zero -> acc
     | _ -> raise Not_a_nat
@@ -131,7 +131,7 @@ and pp_term : term pp = fun oc t ->
      abstraction or product), [`Appl] (application) and [`Atom] (smallest
      priority). *)
   let rec pp (p : [`Func | `Appl | `Atom]) oc t =
-    let (h, args) = Basics.get_args t in
+    let (h, args) = Parsing.Basics.get_args t in
     let pp_appl h args =
       match args with
       | []   -> pp_head (p <> `Func) oc h
@@ -145,7 +145,7 @@ and pp_term : term pp = fun oc t ->
     | Symb(s) ->
         begin
           let eargs =
-            if !print_implicits then args else Basics.expl_args s args
+            if !print_implicits then args else Parsing.Basics.expl_args s args
           in
           match get_pp_hint s with
           | Quant when are_quant_args s args ->
@@ -254,7 +254,7 @@ and pp_term : term pp = fun oc t ->
 (** [pp_rule oc (s,h,r)] prints the rule [r] of symbol [s] to the output
    channel [oc]. *)
 let pp_rule : (sym * rule) pp = fun oc (s,r) ->
-  let lhs = Basics.add_args (Symb s) r.lhs in
+  let lhs = Parsing.Basics.add_args (Symb s) r.lhs in
   let (_, rhs) = Bindlib.unmbind r.rhs in
   Format.fprintf oc "%a ↪ %a" pp_term lhs pp_term rhs
 

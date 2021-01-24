@@ -2,7 +2,7 @@
 
 open Lplib
 
-open Terms
+open Parsing.Terms
 
 (** Type of an environment, used in scoping to associate names to
     corresponding Bindlib variables and types. Note that it cannot be

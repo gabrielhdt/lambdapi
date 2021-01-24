@@ -4,7 +4,7 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open Terms
+open Parsing.Terms
 open File_management.Error
 open File_management.Pos
 open Sig_state

@@ -4,7 +4,8 @@
 open Lplib.Extra
 
 open Core (* Lambdapi core *)
-
+open Parsing
+   
 let _ =
   File_management.Files.set_lib_root None;
   match File_management.Package.find_config "." with

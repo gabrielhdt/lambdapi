@@ -3,9 +3,9 @@
 open! Lplib
 
 open File_management.Error
-open Terms
+open Parsing.Terms
 open File_management.Pos
-open Syntax
+open Parsing.Syntax
 open Proof
 open Print
 open Timed
@@ -42,7 +42,7 @@ let tac_refine : popt -> proof_state -> term -> proof_state =
   | Unif _::_ -> fatal pos "Not a typing goal."
   | Typ gt::gs ->
       log_tact "refine [%a] with [%a]" pp_meta gt.goal_meta pp_term t;
-      if Basics.occurs gt.goal_meta t then fatal pos "Circular refinement.";
+      if Parsing.Basics.occurs gt.goal_meta t then fatal pos "Circular refinement.";
       (* Check that [t] is well-typed. *)
       let c = Env.to_ctxt gt.goal_hyps in
       log_tact "check %a ..." pp_typing (c,t,gt.goal_type);
@@ -55,7 +55,7 @@ let tac_refine : popt -> proof_state -> term -> proof_state =
             (Bindlib.unbox (Bindlib.bind_mvar (Env.vars gt.goal_hyps)
                               (lift t)));
           (* Convert the metas of [t] not in [gs] into new goals. *)
-          let gs = add_goals_of_metas (Basics.get_metas true t) gs in
+          let gs = add_goals_of_metas (Parsing.Basics.get_metas true t) gs in
           let proof_goals = List.rev_map (fun c -> Unif c) to_solve @ gs in
           tac_solve pos {ps with proof_goals}
 
@@ -63,7 +63,7 @@ let tac_refine : popt -> proof_state -> term -> proof_state =
    [ps] and returns the new proof state. This function fails gracefully in
    case of error. *)
 let handle_tactic :
-  Sig_state.t -> Terms.expo -> proof_state -> p_tactic -> proof_state =
+  Sig_state.t -> expo -> proof_state -> p_tactic -> proof_state =
   fun ss e ps tac ->
   match tac.elt with
   | P_tac_query(q) -> Queries.handle_query ss (Some ps) q; ps
@@ -85,7 +85,7 @@ let handle_tactic :
       let n =
         match Infer.infer_noexn (Env.to_ctxt env) t with
         | None -> fatal tac.pos "[%a] is not typable." pp_term t
-        | Some (a, to_solve) -> Basics.count_products a
+        | Some (a, to_solve) -> Parsing.Basics.count_products a
       in
       (*FIXME: this does not take into account implicit arguments. *)
       let t = if n <= 0 then t
@@ -113,7 +113,7 @@ let handle_tactic :
   | P_tac_fail -> fatal tac.pos "Call to tactic \"fail\""
 
 let handle_tactic :
-  Sig_state.t -> Terms.expo -> proof_state -> p_tactic -> proof_state =
+  Sig_state.t -> expo -> proof_state -> p_tactic -> proof_state =
   fun ss exp ps tac ->
   try handle_tactic ss exp ps tac
   with Fatal(_,_) as e -> out 1 "%a" Proof.pp_goals ps; raise e

@@ -8,6 +8,7 @@ open Core
 open File_management.Files
 open File_management.Error
 open Version
+open! Parsing
 
 (* NOTE only standard [Stdlib] references here. *)
 

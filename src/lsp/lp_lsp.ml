@@ -14,6 +14,7 @@ open! Lplib
 open Lplib.Extra
 
 open Core
+open Parsing
 
 module F = Format
 module J = Yojson.Basic

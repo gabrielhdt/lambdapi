@@ -11,7 +11,7 @@
 (************************************************************************)
 
 open! Lplib
-open Core
+open Parsing
 
 let pmap = List.pmap (fun x -> x)
 let concat_map = List.concat_map
