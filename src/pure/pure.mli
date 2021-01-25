@@ -2,7 +2,6 @@
 
 open Lplib
 
-open Core
 open! File_management
 open File_management.Files
 
@@ -36,7 +35,7 @@ exception Parse_error of Pos.pos * string
 val parse_text : state -> string -> string -> Command.t list * state
 
 (** [current_goals s] returns the list of open goals for proof state [s]. *)
-val current_goals : proof_state -> Proof.Goal.t list
+val current_goals : proof_state -> Proof_mode.Proof.Goal.t list
 
 (** Result type of the [handle_command] function. *)
 type command_result =

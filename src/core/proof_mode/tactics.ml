@@ -86,7 +86,7 @@ let handle_tactic :
       let n =
         match Infer.infer_noexn (Env.to_ctxt env) t with
         | None -> fatal tac.pos "[%a] is not typable." pp_term t
-        | Some (a, to_solve) -> Parsing.Basics.count_products a
+        | Some (a, _) -> Parsing.Basics.count_products a
       in
       (*FIXME: this does not take into account implicit arguments. *)
       let t = if n <= 0 then t

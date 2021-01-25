@@ -43,11 +43,11 @@ let parse_text : state -> string -> string -> Command.t list * state =
   | Fatal(Some(None)     , _  ) -> assert false (* Should not produce. *)
   | Fatal(None           , _  ) -> assert false (* Should not produce. *)
 
-type proof_finalizer = Sig_state.t -> Proof.proof_state -> Sig_state.t
+type proof_finalizer = Sig_state.t -> Proof_mode.Proof.proof_state -> Sig_state.t
 type proof_state =
-  Time.t * Sig_state.t * Proof.proof_state * proof_finalizer * Terms.expo
+  Time.t * Sig_state.t * Proof_mode.Proof.proof_state * proof_finalizer * Terms.expo
 
-let current_goals : proof_state -> Proof.Goal.t list = fun (_,_,p,_,_) ->
+let current_goals : proof_state -> Proof_mode.Proof.Goal.t list = fun (_,_,p,_,_) ->
   p.proof_goals
 
 type command_result =
@@ -93,7 +93,7 @@ let handle_tactic : proof_state -> Tactic.t -> tactic_result =
   fun s t ->
   let (_, ss, p, finalize, e) = s in
   try
-    let p = Tactics.handle_tactic ss e p t in
+    let p = Proof_mode.Tactics.handle_tactic ss e p t in
     Tac_OK(Time.save (), ss, p, finalize, e)
   with Fatal(p,m) -> Tac_Error(p,m)
 

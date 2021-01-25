@@ -32,7 +32,7 @@ type config =
 
 (** [get_config ss pos] build the configuration using [ss]. *)
 let get_config : Type_checking.Sig_state.t -> File_management.Pos.popt -> config = fun ss pos ->
-  let builtin = Builtin.get ss pos in
+  let builtin = Proof_mode.Builtin.get ss pos in
   { symb_Prop = builtin "Prop"
   ; symb_prf  = builtin "P" }
 

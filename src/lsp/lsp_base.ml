@@ -10,7 +10,7 @@
 (* Status: Very Experimental                                            *)
 (************************************************************************)
 
-open Core
+open Proof_mode
 open Type_checking
    
 (* Whether to send extended lsp messages *)

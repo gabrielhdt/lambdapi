@@ -69,7 +69,7 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
         | Some(data) ->
             let (st,ts) = (data.pdata_p_state, data.pdata_tactics) in
             let e = data.pdata_expo in
-            let st = List.fold_left (Tactics.handle_tactic ss e) st ts in
+            let st = List.fold_left (Proof_mode.Tactics.handle_tactic ss e) st ts in
             data.pdata_finalize ss st
       in
       ignore (List.fold_left handle sig_st (parse_file src));

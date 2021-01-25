@@ -10,7 +10,7 @@
 (* Status: Very Experimental                                            *)
 (************************************************************************)
 
-open Core
+open Proof_mode
 module J = Yojson.Basic
 
 val std_protocol : bool ref

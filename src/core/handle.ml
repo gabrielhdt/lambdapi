@@ -11,11 +11,11 @@ open Parsing.Sign
 open File_management.Pos
 open File_management.Files
 open Parsing.Syntax
+open! Proof_mode
 open! Type_checking
 open Type_checking.Sig_state
-open Scope
 open Type_checking.Print
-open Proof
+
 
 (** Logging function for command handling. *)
 let log_hndl = new_logger 'h' "hndl" "command handling"
@@ -93,7 +93,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one property modifier can be used, \
                    %d have been found: " (List.length prop);
         die prop
-    | [{elt=P_prop(p); _}] -> to_prop p
+    | [{elt=P_prop(p); _}] -> Scope.to_prop p
     | [] -> Defin
     | _ -> assert false
   in
@@ -104,7 +104,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one exposition marker can be used, \
                    %d have been found: " (List.length expo);
         die expo
-    | [{elt=P_expo(e); _}] -> to_expo e
+    | [{elt=P_expo(e); _}] -> Scope.to_expo e
     | [] -> Public
     | _ -> assert false
   in
@@ -115,7 +115,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one strategy modifier can be used, \
                    %d have been found: " (List.length mstrat);
         die mstrat
-    | [{elt=P_mstrat(s); _ }] -> to_match_strat s
+    | [{elt=P_mstrat(s); _ }] -> Scope.to_match_strat s
     | [] -> Eager
     | _ -> assert false
   in
@@ -125,7 +125,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
    set [syms] extended with the symbol [s] defined by [r]. However, it does
    not update the decision tree of [s]. *)
 let handle_rule : sig_state -> p_rule -> sym = fun ss r ->
-  let pr = scope_rule false ss r in
+  let pr = Scope.scope_rule false ss r in
   let sym = pr.elt.pr_sym in
   if !(sym.sym_def) <> None then
     fatal pr.pos "Rewriting rules cannot be given for defined symbol [%s]."
@@ -177,9 +177,9 @@ let handle_inductive_symbol :
     of its [pdata_p_state] field. *)
 type proof_data =
   { pdata_stmt_pos : File_management.Pos.popt (** File_management.Position of the declared symbol. *)
-  ; pdata_p_state  : proof_state (** Proof state. *)
+  ; pdata_p_state  : Proof.proof_state (** Proof state. *)
   ; pdata_tactics  : p_tactic list (** Tactics. *)
-  ; pdata_finalize : sig_state -> proof_state -> sig_state (** Finalizer. *)
+  ; pdata_finalize : sig_state -> Proof.proof_state -> sig_state (** Finalizer. *)
   ; pdata_end_pos  : File_management.Pos.popt (** File_management.Position of the proof's terminator. *)
   ; pdata_expo     : Terms.expo (** Allowed exposition of symbols in the proof
                                    script. *) }
@@ -360,14 +360,14 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
       in
       (* Get the type of the symbol and the goals to solve for the declaration
          to be well-typed. *)
-      let proof_goals, a = goals_of_typ pos ao t in
+      let proof_goals, a = Proof.goals_of_typ pos ao t in
       (* Add the metas of [a] as goals. *)
-      let proof_goals = add_goals_of_metas metas_a proof_goals in
+      let proof_goals = Proof.add_goals_of_metas metas_a proof_goals in
       (* Add the definition as focused goal so that we can refine on it. *)
       let proof_term, proof_goals =
         if p_sym_def then
           let m =  Meta.fresh ~name:id a 0 in
-          Some m, Goal.of_meta m :: proof_goals
+          Some m, Proof.Goal.of_meta m :: proof_goals
         else None, proof_goals
       in
       (* Get tactics and proof end. *)
@@ -400,7 +400,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
             | P_proof_abort -> assert false (* Handled above *)
             | P_proof_admit ->
                 (* If the proof is finished, display a warning. *)
-                if finished ps then
+                if Proof.finished ps then
                   wrn pe.pos "The proof is finished. Use 'end' instead.";
                 (* Add the symbol in the signature with a warning. *)
                 out 3 "(symb) %s (admit)\n" id;
@@ -410,7 +410,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
                 fst (add_symbol ss sig_symbol)
             | P_proof_end ->
                 (* Check that the proof is indeed finished. *)
-                if not (finished ps) then
+                if not (Proof.finished ps) then
                   (out 1 "%a" Proof.pp_goals ps;
                    fatal pe.pos "The proof is not finished.");
                 (* Add the symbol in the signature. *)
@@ -420,7 +420,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
                 fst (add_symbol ss sig_symbol)
       in
       (* Create proof state. *)
-      let ps = {proof_name = p_sym_nam; proof_term; proof_goals} in
+      let ps = {Proof.proof_name = p_sym_nam; proof_term; proof_goals} in
       (* Apply tac_solve. *)
       let ps = Tactics.tac_solve pos ps in
       (* Apply tac_refine in case of a definition. *)
@@ -475,7 +475,7 @@ let handle_cmd : sig_state -> p_command -> sig_state * proof_data option =
             add_quant ss sym
         | P_config_unif_rule(h)   ->
             (* Approximately same processing as rules without SR checking. *)
-            let pur = (scope_rule true ss h).elt in
+            let pur = (Scope.scope_rule true ss h).elt in
             let urule =
               { lhs = pur.pr_lhs
               ; rhs = Bindlib.(unbox (bind_mvar pur.pr_vars pur.pr_rhs))

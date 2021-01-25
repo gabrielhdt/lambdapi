@@ -1,0 +1,5 @@
+(library
+ (name proof_mode)
+ (public_name lambdapi.proof_mode)
+ (modules :standard)
+ (libraries unix stdlib-shims timed bindlib earley.core why3 lplib file_management parsing type_checking))
