@@ -170,7 +170,7 @@ let get_vars : sym -> rule -> (string * Terms.term) list = fun s r ->
     let fn l x = (x, (Meta(Meta.fresh Type 0,[||])), None) :: l in
     List.fold_left fn [] !var_list
   in
-  match Infer.infer_noexn ctx lhs with
+  match Type_checking.Infer.infer_noexn ctx lhs with
   | None -> assert false (*FIXME?*)
   | Some (_,cs) ->
   let cs = List.map (fun (_,t,u) -> (t,u)) cs in
@@ -187,7 +187,7 @@ let to_XTC : Format.formatter -> Sign.t -> unit = fun oc sign ->
     (* Iterate on all symbols of a signature, excluding ghost symbols. *)
     let iter_symbols sign =
       let not_on_ghosts _ (s, _) =
-        if not (Unif_rule.is_ghost s) then fn s
+        if not (Type_checking.Unif_rule.is_ghost s) then fn s
       in
       StrMap.iter not_on_ghosts Sign.(!(sign.sign_symbols))
     in

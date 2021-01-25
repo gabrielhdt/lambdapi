@@ -8,8 +8,9 @@ open Parsing.Terms
 open! Parsing
 open Parsing.Basics
 open File_management.Error
-open Print
+open Type_checking.Print
 open Proof
+open! Type_checking
    
 (** Logging function for the rewrite tactic. *)
 let log_rewr = new_logger 'r' "rewr" "the rewrite tactic"

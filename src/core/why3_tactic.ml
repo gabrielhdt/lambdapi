@@ -6,7 +6,8 @@ open Lplib.Extra
 open File_management.Error
 open Parsing.Terms
 open Timed
-open Print
+open! Type_checking
+open Type_checking.Print
 
 (** Logging function for external prover calling with Why3. *)
 let log_why3 = new_logger 'w' "why3" "why3 provers"

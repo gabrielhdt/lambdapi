@@ -6,6 +6,8 @@ open Parsing
 open File_management.Error
 open File_management.Files
 
+open! Type_checking
+   
 (** Representation of a single command (abstract). *)
 module Command = struct
   type t = Syntax.p_command

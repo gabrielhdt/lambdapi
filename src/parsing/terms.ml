@@ -548,7 +548,25 @@ type rw_patt =
   | RW_IdInTerm       of (term, term) Bindlib.binder
   | RW_TermInIdInTerm of term * (term, term) Bindlib.binder
   | RW_TermAsIdInTerm of term * (term, term) Bindlib.binder
-              
+
+(** Representation of a rewriting rule prior to SR-checking. *)
+type pre_rule =
+  { pr_sym      : sym
+  (** Head symbol of the LHS. *)
+  ; pr_lhs      : term list
+  (** Arguments of the LHS. *)
+  ; pr_vars     : term_env Bindlib.mvar
+  (** Pattern  variables that can  appear in  the RHS. The  last [pr_xvars_nb]
+      variables do not appear in the LHS. *)
+  ; pr_rhs      : tbox
+  (** Body of the RHS, should only be unboxed once. *)
+  ; pr_names    : (int, string) Hashtbl.t
+  (** Gives the original name (if any) of pattern variable at given index. *)
+  ; pr_arities  : int array
+  (** Gives the arity of all the pattern variables in field [pr_vars]. *)
+  ; pr_xvars_nb : int
+  (** Number of variables that appear in the RHS but not in the LHS. *) }
+                       
 (** Representation of unification problems. *)
 type problem =
   { to_solve  : constr list

@@ -7,7 +7,8 @@ open Parsing.Terms
 open File_management.Pos
 open Parsing.Syntax
 open Proof
-open Print
+open! Type_checking
+open Type_checking.Print
 open Timed
 
 (** Logging function for tactics. *)

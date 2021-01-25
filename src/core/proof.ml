@@ -5,7 +5,8 @@ open Lplib.Base
 
 open Timed
 open Parsing.Terms
-open Print
+open! Type_checking
+open Type_checking.Print
 open File_management.Error
 open File_management.Pos
 

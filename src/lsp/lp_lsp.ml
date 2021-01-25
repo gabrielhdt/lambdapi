@@ -13,8 +13,8 @@
 open! Lplib
 open Lplib.Extra
 
-open Core
 open Parsing
+open Type_checking
 
 module F = Format
 module J = Yojson.Basic

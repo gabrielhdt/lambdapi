@@ -3,8 +3,9 @@
 open File_management.Error
 open File_management.Pos
 open Parsing.Syntax
-open Parsing.Terms
-open Print
+open Parsing.Terms (* empty_problem only! *)
+open! Type_checking
+open Type_checking.Print
 open Proof
 
 (** [handle_query ss ps q] *)

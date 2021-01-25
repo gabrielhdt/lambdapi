@@ -11,9 +11,10 @@ open Parsing.Sign
 open File_management.Pos
 open File_management.Files
 open Parsing.Syntax
-open Sig_state
+open! Type_checking
+open Type_checking.Sig_state
 open Scope
-open Print
+open Type_checking.Print
 open Proof
 
 (** Logging function for command handling. *)

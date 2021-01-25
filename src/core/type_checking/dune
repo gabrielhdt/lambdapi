@@ -1,0 +1,5 @@
+(library
+ (name type_checking)
+ (public_name lambdapi.type_checking)
+ (modules :standard)
+ (libraries unix stdlib-shims timed bindlib earley.core why3 lplib file_management parsing))

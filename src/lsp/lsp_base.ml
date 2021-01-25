@@ -11,6 +11,7 @@
 (************************************************************************)
 
 open Core
+open Type_checking
    
 (* Whether to send extended lsp messages *)
 let std_protocol = ref true

@@ -7,9 +7,10 @@ open File_management.Error
 open File_management.Pos
 open Parsing.Syntax
 open Parsing.Terms
-open Env
-open Sig_state
-(*open Rewrite*)
+
+open! Type_checking
+open Type_checking.Env
+open Type_checking.Sig_state
 
 (** Logging function for term scoping. *)
 let log_scop = new_logger 'o' "scop" "term scoping"
@@ -531,24 +532,6 @@ let patt_vars : p_term -> (string * int) list * string list =
         patt_vars_args acc args
   in
   patt_vars ([],[])
-
-(** Representation of a rewriting rule prior to SR-checking. *)
-type pre_rule =
-  { pr_sym      : sym
-  (** Head symbol of the LHS. *)
-  ; pr_lhs      : term list
-  (** Arguments of the LHS. *)
-  ; pr_vars     : term_env Bindlib.mvar
-  (** Pattern  variables that can  appear in  the RHS. The  last [pr_xvars_nb]
-      variables do not appear in the LHS. *)
-  ; pr_rhs      : tbox
-  (** Body of the RHS, should only be unboxed once. *)
-  ; pr_names    : (int, string) Hashtbl.t
-  (** Gives the original name (if any) of pattern variable at given index. *)
-  ; pr_arities  : int array
-  (** Gives the arity of all the pattern variables in field [pr_vars]. *)
-  ; pr_xvars_nb : int
-  (** Number of variables that appear in the RHS but not in the LHS. *) }
 
 (** [scope_rule ur ss r] turns a parser-level rewriting rule [r], or a
     unification rule if [ur] is true, into a pre-rewriting rule. *)
