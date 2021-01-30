@@ -15,7 +15,7 @@ module Pratt : sig
 end = struct
 
   open Lplib
-  open Pos
+  open File_management.Pos
 
   module Pratt_terms : Pratter.SUPPORT
     with type term = p_term
@@ -56,9 +56,9 @@ end = struct
     let module Parse = Pratter.Make(Pratt_terms) in
     try Parse.expression (st, env) strm with
     | Parse.OpConflict(t, u) ->
-        Console.fatal t.pos "Operator conflict between \"%a\" and \"%a\""
+        File_management.Error.fatal t.pos "Operator conflict between \"%a\" and \"%a\""
           Pretty.term t Pretty.term u
     | Parse.TooFewArguments ->
-        Console.fatal t.pos "Malformed application in \"%a\"" Pretty.term t
+        File_management.Error.fatal t.pos "Malformed application in \"%a\"" Pretty.term t
 end
 include Pratt

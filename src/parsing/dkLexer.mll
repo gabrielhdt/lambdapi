@@ -1,7 +1,7 @@
 {
-open Console
+open File_management.Error
 open Lexing
-open Pos
+open File_management.Pos
 
 let filename = Stdlib.ref ""
 
@@ -11,7 +11,7 @@ let to_module_path : string -> Syntax.p_module_path = fun mp ->
 let make_pos : Lexing.position * Lexing.position -> 'a -> 'a loc =
   fun lps elt -> {pos = Some(locate lps); elt}
 
-let locate_lexbuf : Lexing.lexbuf -> Pos.pos = fun lexbuf ->
+let locate_lexbuf : Lexing.lexbuf -> pos = fun lexbuf ->
   locate (lexbuf.lex_start_p, lexbuf.lex_curr_p)
 
 type token =

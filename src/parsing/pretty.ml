@@ -14,71 +14,51 @@ open Syntax
 
 let string = Format.pp_print_string
 
+let path_elt : File_management.Pos.popt -> (string * bool) pp = fun pos ff (s,b) ->
+  if not b && LpLexer.is_keyword s then
+    fatal pos "Module path member [%s] is a Lambdapi keyword." s;
+  if b then Format.fprintf ff "{|%s|}" s else string ff s
+
+let path : File_management.Pos.popt -> p_module_path pp = fun pos ->
+  List.pp (path_elt pos) "."
+           
 let ident : ident pp = fun ff {pos; elt} ->
   if LpLexer.is_keyword elt then
     fatal pos "Identifier [%s] is a Lambdapi keyword." elt;
   string ff elt
+
+let qident : qident pp = fun ff {elt=(path,id); pos} ->
+  List.iter (Format.fprintf ff "%a." (path_elt pos)) path;
+  ident ff (File_management.Pos.make pos id)
 
 let arg_ident : ident option pp = fun ff id ->
   match id with
   | Some(id) -> ident ff id
   | None     -> string ff "_"
 
-<<<<<<< HEAD:src/parsing/pretty.ml
-let path_elt : File_management.Pos.popt -> (string * bool) pp = fun pos oc (s,b) ->
-  if not b && Parser.KW.mem s then
-    fatal pos "Module path member [%s] is a Lambdapi keyword." s;
-  if b then Format.fprintf oc "{|%s|}" s else string oc s
-
-let qident : qident pp = fun oc qid ->
-  List.iter (Format.fprintf oc "%a." (path_elt qid.pos)) (fst qid.elt);
-  ident oc (File_management.Pos.make qid.pos (snd qid.elt))
-=======
-let path_elt : Pos.popt -> (string * bool) pp = fun pos ff (s,b) ->
-  if not b && LpLexer.is_keyword s then
-    fatal pos "Module path member [%s] is a Lambdapi keyword." s;
-  if b then Format.fprintf ff "{|%s|}" s else string ff s
->>>>>>> origin/master:src/core/pretty.ml
-
-let path : File_management.Pos.popt -> p_module_path pp = fun pos ->
-  List.pp (path_elt pos) "."
-  
-let pp_prop : p_prop pp = fun oc p ->
+let pp_prop : p_prop pp = fun ff p ->
   match p with
   | P_Defin -> ()
-  | P_Const -> Format.fprintf oc "constant "
-  | P_Injec -> Format.fprintf oc "injective "
+  | P_Const -> Format.fprintf ff "constant "
+  | P_Injec -> Format.fprintf ff "injective "
 
-let pp_expo : p_expo pp = fun oc e ->
+let pp_expo : p_expo pp = fun ff e ->
   match e with
   | P_Public -> ()
-  | P_Protec -> Format.fprintf oc "protected "
-  | P_Privat -> Format.fprintf oc "private "
+  | P_Protec -> Format.fprintf ff "protected "
+  | P_Privat -> Format.fprintf ff "private "
 
-<<<<<<< HEAD:src/parsing/pretty.ml
-let pp_match_strat : p_match_strat pp = fun oc s ->
+let pp_match_strat : p_match_strat pp = fun ff s ->
   match s with
-  | P_Sequen -> Format.fprintf oc "sequential "
+  | P_Sequen -> Format.fprintf ff "sequential "
   | P_Eager  -> ()
-           
-let modifier : p_modifier pp = fun oc {elt; _} ->
-  match elt with
-  | P_expo(e)   -> pp_expo oc e
-  | P_mstrat(s) -> pp_match_strat oc s
-  | P_prop(p)   -> pp_prop oc p
-  | P_opaq      -> string oc "opaque "
-=======
-let qident : qident pp = fun ff {elt=(path,id); pos} ->
-  List.iter (Format.fprintf ff "%a." (path_elt pos)) path;
-  ident ff (Pos.make pos id)
 
 let modifier : p_modifier pp = fun ff {elt; _} ->
   match elt with
-  | P_expo(e) -> Print.pp_expo ff e
-  | P_mstrat(s) -> Print.pp_match_strat ff s
-  | P_prop(p) -> Print.pp_prop ff p
-  | P_opaq -> string ff "opaque "
->>>>>>> origin/master:src/core/pretty.ml
+  | P_expo(e)   -> pp_expo ff e
+  | P_mstrat(s) -> pp_match_strat ff s
+  | P_prop(p)   -> pp_prop ff p
+  | P_opaq      -> string ff "opaque "
 
 let rec term : p_term pp = fun ff t ->
   let out fmt = Format.fprintf ff fmt in
@@ -159,7 +139,6 @@ let inductive : string -> p_inductive pp = fun kw ff {elt=(id,a,cs);_} ->
 let equiv : (p_term * p_term) pp = fun ff (l, r) ->
   Format.fprintf ff "%a ≡ %a" term l term r
 
-<<<<<<< HEAD:src/parsing/pretty.ml
 (** [p_unpack eqs] is [unpack eqs] on syntax-level equivalences [eqs]. *)
 let rec p_unpack : p_term -> (p_term * p_term) list = fun eqs ->
   let id s = snd s.File_management.Pos.elt in
@@ -175,23 +154,14 @@ let rec p_unpack : p_term -> (p_term * p_term) list = fun eqs ->
       assert false (* Ill-formed term. *)
   | _                               -> assert false (* Ill-formed term. *)
   
-let unif_rule : p_rule pp = fun oc r ->
-  let (lhs, rhs) = r.elt in
-=======
 let unif_rule : p_rule pp = fun ff {elt=(lhs,rhs);_} ->
->>>>>>> origin/master:src/core/pretty.ml
   let lhs =
     match Syntax.p_get_args lhs with
     | (_, [t; u]) -> (t, u)
     | _           -> assert false
   in
-<<<<<<< HEAD:src/parsing/pretty.ml
   let eqs = p_unpack rhs in
-  Format.fprintf oc "@[<hov 3>%a ↪ %a@]@?" equi lhs (List.pp equi ", ") eqs
-=======
-  let eqs = Unif_rule.p_unpack rhs in
   Format.fprintf ff "%a ↪ %a" equiv lhs (List.pp equiv ", ") eqs
->>>>>>> origin/master:src/core/pretty.ml
 
 let proof_end : p_proof_end pp = fun ff {elt;_} ->
   match elt with

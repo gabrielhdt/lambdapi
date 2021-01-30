@@ -55,8 +55,8 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
       let src = src () in
       out 2 "Loading %s%s ...\n%!" src forced;
       loading := path :: !loading;
-      let sign = Type_checking.Sig_state.create_sign path in
-      let sig_st = Stdlib.ref (Type_checking.Sig_state.of_sign sign) in
+      let sign = Parsing.Sig_state.create_sign path in
+      let sig_st = Stdlib.ref (Parsing.Sig_state.of_sign sign) in
       (* [sign] is added to [loaded] before processing the commands so that it
          is possible to qualify the symbols of the current modules. *)
       loaded := PathMap.add path sign !loaded;

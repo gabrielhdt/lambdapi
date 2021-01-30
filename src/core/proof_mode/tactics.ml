@@ -11,6 +11,8 @@ open! Type_checking
 open Type_checking.Print
 open Timed
 
+open! Parsing
+
 (** Logging function for tactics. *)
 let log_tact = new_logger 't' "tact" "tactics"
 let log_tact = log_tact.logger

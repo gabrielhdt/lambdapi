@@ -6,8 +6,10 @@ open Parsing
 open File_management.Error
 open File_management.Files
 
+open! File_management
 open! Type_checking
-   
+open! Proof_mode
+  
 (** Representation of a single command (abstract). *)
 module Command = struct
   type t = Syntax.p_command
@@ -68,7 +70,6 @@ let parse_text : state -> string -> string -> Command.t list * state =
 
 type proof_finalizer = Sig_state.t -> Proof_mode.Proof.proof_state -> Sig_state.t
 type proof_state =
-<<<<<<< HEAD
   Time.t * Sig_state.t * Proof_mode.Proof.proof_state * proof_finalizer * Terms.expo
 
 type conclusion =

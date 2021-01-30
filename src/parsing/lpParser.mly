@@ -4,14 +4,14 @@
 %{
     open Syntax
     open Lplib
-    open Pos
+    open File_management.Pos
 
-    let make_pos : Lexing.position * Lexing.position -> 'a -> 'a loc =
-      fun lps elt -> Pos.in_pos (locate lps) elt
+    let make_File_management.Pos : Lexing.File_management.Position * Lexing.File_management.Position -> 'a -> 'a loc =
+      fun lps elt -> File_management.Pos.in_File_management.Pos (locate lps) elt
 
     let qid_of_path loc p =
       let (mp, id) = List.split_last p in
-      make_pos loc (mp, fst id)
+      make_File_management.Pos loc (mp, fst id)
  %}
 
 // end of file
@@ -136,20 +136,20 @@
 
 %%
 
-ident: i=ID { make_pos $loc (fst i), snd i}
+ident: i=ID { make_File_management.Pos $loc (fst i), snd i}
 
-// [path] with a post processing to yield a [qident]
+// [path] with a File_management.Post processing to yield a [qident]
 qident:
   | p=QID { qid_of_path $loc p}
-  | i=ID { make_pos $loc ([], fst i) }
+  | i=ID { make_File_management.Pos $loc ([], fst i) }
 
 term_ident:
   | p=QID_EXPL
-      { make_pos $loc (P_Iden(qid_of_path $loc p, true)) }
-  | qid=qident { make_pos $loc (P_Iden(qid, false)) }
+      { make_File_management.Pos $loc (P_Iden(qid_of_path $loc p, true)) }
+  | qid=qident { make_File_management.Pos $loc (P_Iden(qid, false)) }
 
 // Rewrite pattern identifier
-patt: p=ID_PAT { if p = "_" then None else Some(make_pos $loc p) }
+patt: p=ID_PAT { if p = "_" then None else Some(make_File_management.Pos $loc p) }
 
 // Identifiers for arguments
 argid:
@@ -163,38 +163,38 @@ arg_list:
   // Explicit argument with type annotation
   | L_PAREN xs=argid+ COLON a=term R_PAREN
       { (xs, Some(a), false) }
-  // Implicit argument (possibly with type annotation)
+  // Implicit argument (File_management.Possibly with type annotation)
   | L_CU_BRACKET xs=argid+ a=preceded(COLON, term)? R_CU_BRACKET
       { (xs, a, true) }
 
 // Patterns of the rewrite tactic
 rw_patt:
-  | t=term { make_pos $loc (P_rw_Term(t)) }
-  | IN t=term { make_pos $loc (P_rw_InTerm(t)) }
-  | IN x=ident IN t=term { make_pos $loc (P_rw_InIdInTerm(fst x, t)) }
+  | t=term { make_File_management.Pos $loc (P_rw_Term(t)) }
+  | IN t=term { make_File_management.Pos $loc (P_rw_InTerm(t)) }
+  | IN x=ident IN t=term { make_File_management.Pos $loc (P_rw_InIdInTerm(fst x, t)) }
   | u=term IN x=term t=preceded(IN, term)?
     {
       let ident_of_term {elt; _} =
         match elt with
-          | P_Iden({elt=([], x); pos}, _) -> Pos.make pos x
+          | P_Iden({elt=([], x); File_management.Pos}, _) -> File_management.Pos.make File_management.Pos x
           | _ -> $syntaxerror
       in
       match t with
-      | Some(t) -> make_pos $loc (P_rw_TermInIdInTerm(u, ident_of_term x, t))
-      | None -> make_pos $loc (P_rw_IdInTerm(ident_of_term u, x))
+      | Some(t) -> make_File_management.Pos $loc (P_rw_TermInIdInTerm(u, ident_of_term x, t))
+      | None -> make_File_management.Pos $loc (P_rw_IdInTerm(ident_of_term u, x))
     }
   | u=term AS x=ident IN t=term
-      { make_pos $loc (P_rw_TermAsIdInTerm(u, fst x, t)) }
+      { make_File_management.Pos $loc (P_rw_TermAsIdInTerm(u, fst x, t)) }
 
 // Tactics available in proof mode.
 tactic:
-  | q=query { make_pos $loc (P_tac_query q) }
-  | APPLY t=term { make_pos $loc (P_tac_apply t) }
-  | ASSUME xs=argid+ { make_pos $loc (P_tac_intro xs) }
-  | FAIL { make_pos $loc P_tac_fail }
-  | FOCUS i=INT { make_pos $loc (P_tac_focus i) }
-  | REFINE t=term { make_pos $loc (P_tac_refine t) }
-  | REFLEXIVITY { make_pos $loc P_tac_refl }
+  | q=query { make_File_management.Pos $loc (P_tac_query q) }
+  | APPLY t=term { make_File_management.Pos $loc (P_tac_apply t) }
+  | ASSUME xs=argid+ { make_File_management.Pos $loc (P_tac_intro xs) }
+  | FAIL { make_File_management.Pos $loc P_tac_fail }
+  | FOCUS i=INT { make_File_management.Pos $loc (P_tac_focus i) }
+  | REFINE t=term { make_File_management.Pos $loc (P_tac_refine t) }
+  | REFLEXIVITY { make_File_management.Pos $loc P_tac_refl }
   | REWRITE l=ASSOC? p=delimited(L_SQ_BRACKET, rw_patt, R_SQ_BRACKET)? t=term
     {
       let b =
@@ -202,21 +202,21 @@ tactic:
         | Some(Pratter.Left) -> false
         | _ -> true
       in
-      make_pos $loc (P_tac_rewrite(b,p,t))
+      make_File_management.Pos $loc (P_tac_rewrite(b,p,t))
     }
-  | SIMPL { make_pos $loc P_tac_simpl }
-  | SOLVE { make_pos $loc P_tac_solve }
-  | SYMMETRY { make_pos $loc P_tac_sym }
-  | WHY3 s=STRINGLIT? { make_pos $loc (P_tac_why3 s) }
+  | SIMPL { make_File_management.Pos $loc P_tac_simpl }
+  | SOLVE { make_File_management.Pos $loc P_tac_solve }
+  | SYMMETRY { make_File_management.Pos $loc P_tac_sym }
+  | WHY3 s=STRINGLIT? { make_File_management.Pos $loc (P_tac_why3 s) }
 
 // Modifiers of declarations.
 modifier:
-  | CONSTANT { make_pos $loc (P_prop Terms.Const) }
-  | INJECTIVE { make_pos $loc (P_prop Terms.Injec) }
-  | OPAQUE { make_pos $loc P_opaq }
-  | PRIVATE { make_pos $loc (P_expo Terms.Privat) }
-  | PROTECTED { make_pos $loc (P_expo Terms.Protec) }
-  | SEQUENTIAL { make_pos $loc (P_mstrat Terms.Sequen) }
+  | CONSTANT { make_File_management.Pos $loc (P_prop Terms.Const) }
+  | INJECTIVE { make_File_management.Pos $loc (P_prop Terms.Injec) }
+  | OPAQUE { make_File_management.Pos $loc P_opaq }
+  | PRIVATE { make_File_management.Pos $loc (P_expo Terms.Privat) }
+  | PROTECTED { make_File_management.Pos $loc (P_expo Terms.Protec) }
+  | SEQUENTIAL { make_File_management.Pos $loc (P_mstrat Terms.Sequen) }
 
 // Converts floats and integers to floats
 float_or_int:
@@ -248,43 +248,43 @@ query:
     {
       let t =
         if ps = [] then t else
-        make_pos ($startpos(ps), $endpos(a)) (P_Abst(ps, t))
+        make_File_management.Pos ($startFile_management.Pos(ps), $endFile_management.Pos(a)) (P_Abst(ps, t))
       in
       let a =
         if ps = [] then a else
-        make_pos ($startpos(ps), $endpos(a)) (P_Prod(ps, a))
+        make_File_management.Pos ($startFile_management.Pos(ps), $endFile_management.Pos(a)) (P_Prod(ps, a))
       in
-      make_pos $loc (P_query_assert(k, P_assert_typing(t, a)))
+      make_File_management.Pos $loc (P_query_assert(k, P_assert_typing(t, a)))
     }
   | k=assert_kw ps=arg_list* TURNSTILE t=term EQUIV a=term
     {
       let t =
         if ps = [] then t else
-        make_pos ($startpos(ps), $endpos(a)) (P_Abst(ps, t))
+        make_File_management.Pos ($startFile_management.Pos(ps), $endFile_management.Pos(a)) (P_Abst(ps, t))
       in
       let a =
         if ps = [] then a else
-        make_pos ($startpos(ps), $endpos(a)) (P_Abst(ps, a))
+        make_File_management.Pos ($startFile_management.Pos(ps), $endFile_management.Pos(a)) (P_Abst(ps, a))
       in
-      make_pos $loc (P_query_assert(k, P_assert_conv(t, a)))
+      make_File_management.Pos $loc (P_query_assert(k, P_assert_conv(t, a)))
     }
   | COMPUTE t=term
-    { make_pos $loc (P_query_normalize(t, {strategy=SNF; steps=None})) }
-  | PRINT qid=qident? { make_pos $loc (P_query_print qid) }
-  | PROOFTERM { make_pos $loc P_query_proofterm }
+    { make_File_management.Pos $loc (P_query_normalize(t, {strategy=SNF; steps=None})) }
+  | PRINT qid=qident? { make_File_management.Pos $loc (P_query_print qid) }
+  | PROOFTERM { make_File_management.Pos $loc P_query_proofterm }
   | SET DEBUG fl=DEBUG_FLAGS
-      { let (b, s) = fl in make_pos $loc (P_query_debug(b, s)) }
-  | SET FLAG s=STRINGLIT b=SWITCH { make_pos $loc (P_query_flag(s,b)) }
-  | SET PROVER s=STRINGLIT { make_pos $loc (P_query_prover(s)) }
-  | SET PROVER_TIMEOUT n=INT { make_pos $loc (P_query_prover_timeout(n)) }
-  | SET VERBOSE i=INT { make_pos $loc (P_query_verbose(i)) }
+      { let (b, s) = fl in make_File_management.Pos $loc (P_query_debug(b, s)) }
+  | SET FLAG s=STRINGLIT b=SWITCH { make_File_management.Pos $loc (P_query_flag(s,b)) }
+  | SET PROVER s=STRINGLIT { make_File_management.Pos $loc (P_query_prover(s)) }
+  | SET PROVER_TIMEOUT n=INT { make_File_management.Pos $loc (P_query_prover_timeout(n)) }
+  | SET VERBOSE i=INT { make_File_management.Pos $loc (P_query_verbose(i)) }
   | TYPE_QUERY t=term
-    { make_pos $loc (P_query_infer(t, {strategy=NONE; steps=None}))}
+    { make_File_management.Pos $loc (P_query_infer(t, {strategy=NONE; steps=None}))}
 
 proof_end:
-  | ABORT { make_pos $loc Syntax.P_proof_abort }
-  | ADMIT { make_pos $loc Syntax.P_proof_admit }
-  | END { make_pos $loc Syntax.P_proof_end }
+  | ABORT { make_File_management.Pos $loc Syntax.P_proof_abort }
+  | ADMIT { make_File_management.Pos $loc Syntax.P_proof_admit }
+  | END { make_File_management.Pos $loc Syntax.P_proof_end }
 
 proof: BEGIN ts=terminated(tactic, SEMICOLON)* pe=proof_end { ts, pe }
 
@@ -293,7 +293,7 @@ inductive:
     c=separated_list(VBAR, separated_pair(ident, COLON, term))
       {
         let c = List.map (fun (id, t) -> (fst id, t)) c in
-        make_pos $loc (fst i, t, c)
+        make_File_management.Pos $loc (fst i, t, c)
       }
 
 term_proof:
@@ -303,14 +303,14 @@ term_proof:
 
 // Top level commands
 command:
-  | REQUIRE OPEN p=QID+ SEMICOLON { make_pos $loc (P_require(true,p)) }
-  | REQUIRE p=QID+ SEMICOLON { make_pos $loc (P_require(false, p)) }
+  | REQUIRE OPEN p=QID+ SEMICOLON { make_File_management.Pos $loc (P_require(true,p)) }
+  | REQUIRE p=QID+ SEMICOLON { make_File_management.Pos $loc (P_require(false, p)) }
   | REQUIRE p=QID AS a=ident SEMICOLON
       {
-        let alias = Pos.make (fst a).pos ((fst a).elt, snd a) in
-        make_pos $loc (P_require_as(p, alias))
+        let alias = File_management.Pos.make (fst a).File_management.Pos ((fst a).elt, snd a) in
+        make_File_management.Pos $loc (P_require_as(p, alias))
       }
-  | OPEN p=QID SEMICOLON { make_pos $loc (P_open([p])) }
+  | OPEN p=QID SEMICOLON { make_File_management.Pos $loc (P_open([p])) }
   | ms=modifier* SYMBOL s=ident al=arg_list* COLON a=term
     po=proof? SEMICOLON
       {
@@ -318,7 +318,7 @@ command:
           {p_sym_mod=ms; p_sym_nam=fst s; p_sym_arg=al; p_sym_typ=Some(a);
            p_sym_trm=None; p_sym_def=false; p_sym_prf=po}
         in
-        make_pos $loc (P_symbol(sym))
+        make_File_management.Pos $loc (P_symbol(sym))
       }
   | ms=modifier* SYMBOL s=ident al=arg_list* ao=preceded(COLON, term)?
     ASSIGN tp=term_proof SEMICOLON
@@ -327,15 +327,15 @@ command:
           {p_sym_mod=ms; p_sym_nam=fst s; p_sym_arg=al; p_sym_typ=ao;
            p_sym_trm=fst tp; p_sym_prf=snd tp; p_sym_def=true}
         in
-        make_pos $loc (P_symbol(sym))
+        make_File_management.Pos $loc (P_symbol(sym))
       }
   | ms=modifier* INDUCTIVE is=separated_nonempty_list(WITH, inductive)
     SEMICOLON
-      { make_pos $loc (P_inductive(ms, is)) }
+      { make_File_management.Pos $loc (P_inductive(ms, is)) }
   | RULE rs=separated_nonempty_list(WITH, rule) SEMICOLON
-      { make_pos $loc (P_rules(rs)) }
-  | SET c=config SEMICOLON { make_pos $loc (P_set(c)) }
-  | q=query SEMICOLON { make_pos $loc (P_query(q)) }
+      { make_File_management.Pos $loc (P_rules(rs)) }
+  | SET c=config SEMICOLON { make_File_management.Pos $loc (P_set(c)) }
+  | q=query SEMICOLON { make_File_management.Pos $loc (P_query(q)) }
   | EOF { raise End_of_file }
 
 // Environment of a metavariable or rewrite pattern
@@ -345,68 +345,68 @@ env: L_SQ_BRACKET ts=separated_list(SEMICOLON, term) R_SQ_BRACKET { ts }
 aterm:
   | ti=term_ident { ti }
   // The wildcard "_"
-  | WILD { make_pos $loc P_Wild }
+  | WILD { make_File_management.Pos $loc P_Wild }
   // The constant [TYPE] (of type Kind)
-  | TYPE_TERM { make_pos $loc P_Type }
+  | TYPE_TERM { make_File_management.Pos $loc P_Type }
   // Metavariable
   | m=ID_META e=env?
       {
-        let mid = make_pos $loc(m) m in
-        make_pos $loc (P_Meta(mid, Option.map Array.of_list e))
+        let mid = make_File_management.Pos $loc(m) m in
+        make_File_management.Pos $loc (P_Meta(mid, Option.map Array.of_list e))
       }
   // Pattern of rewrite rules
-  | p=patt e=env? { make_pos $loc (P_Patt(p, Option.map Array.of_list e)) }
+  | p=patt e=env? { make_File_management.Pos $loc (P_Patt(p, Option.map Array.of_list e)) }
   // Parentheses
-  | L_PAREN t=term R_PAREN { make_pos $loc (P_Wrap(t)) }
+  | L_PAREN t=term R_PAREN { make_File_management.Pos $loc (P_Wrap(t)) }
   // Explicitly given argument
-  | L_CU_BRACKET t=term R_CU_BRACKET { make_pos $loc (P_Expl(t)) }
+  | L_CU_BRACKET t=term R_CU_BRACKET { make_File_management.Pos $loc (P_Expl(t)) }
   // Natural number
-  | n=INT { make_pos $loc (P_NLit(n)) }
+  | n=INT { make_File_management.Pos $loc (P_NLit(n)) }
 
 // Symbolic terms (as with S-expressions)
 sterm:
-  | t=sterm u=aterm { make_pos $loc (P_Appl(t,u)) }
+  | t=sterm u=aterm { make_File_management.Pos $loc (P_Appl(t,u)) }
   | t=aterm { t }
 
 term:
   | t=sterm { t }
-  | t=term ARROW u=term { make_pos $loc (P_Impl(t, u)) }
+  | t=term ARROW u=term { make_File_management.Pos $loc (P_Impl(t, u)) }
   // Quantifier
   | BACKQUOTE q=term_ident b=binder
       {
-        let bder = Pos.make b.pos (P_Abst(fst b.elt, snd b.elt)) in
-        make_pos $loc (P_Appl(q, bder))
+        let bder = File_management.Pos.make b.File_management.Pos (P_Abst(fst b.elt, snd b.elt)) in
+        make_File_management.Pos $loc (P_Appl(q, bder))
       }
-  | PI b=binder { make_pos $loc (P_Prod(fst b.elt, snd b.elt)) }
-  | LAMBDA b=binder { make_pos $loc (P_Abst(fst b.elt, snd b.elt)) }
+  | PI b=binder { make_File_management.Pos $loc (P_Prod(fst b.elt, snd b.elt)) }
+  | LAMBDA b=binder { make_File_management.Pos $loc (P_Abst(fst b.elt, snd b.elt)) }
   | LET x=ident a=arg_list* b=preceded(COLON, term)? ASSIGN t=term IN u=term
-      { make_pos $loc (P_LLet(fst x, a, b, t, u)) }
+      { make_File_management.Pos $loc (P_LLet(fst x, a, b, t, u)) }
 
 /* REVIEW: allow pattern of the form \x y z: N, t */
 binder:
   | xs=arg_list+ COMMA t=term
-      { make_pos $loc (xs, t) }
+      { make_File_management.Pos $loc (xs, t) }
   | x=argid COLON a=term COMMA t=term
-      { make_pos $loc ([[x], Some a, false], t) }
+      { make_File_management.Pos $loc ([[x], Some a, false], t) }
 
 // A rewrite rule [lhs ↪ rhs]
-rule: l=term HOOK_ARROW r=term { make_pos $loc (l, r) }
+rule: l=term HOOK_ARROW r=term { make_File_management.Pos $loc (l, r) }
 
 equation: l=term EQUIV r=term { (l, r) }
 
 unif_rule: l=equation HOOK_ARROW
 L_SQ_BRACKET rs=separated_nonempty_list(SEMICOLON, equation) R_SQ_BRACKET
     {
-      let equiv = Pos.none (P_Iden(Pos.none ([], "#equiv"), true)) in
-      let p_appl t u = Pos.none (P_Appl(t, u)) in
+      let equiv = File_management.Pos.none (P_Iden(File_management.Pos.none ([], "#equiv"), true)) in
+      let p_appl t u = File_management.Pos.none (P_Appl(t, u)) in
       let mkequiv (l, r) = p_appl (p_appl equiv l) r in
       let lhs = mkequiv l in
-      let cons = Pos.none (P_Iden(Pos.none ([], "#cons"), true)) in
+      let cons = File_management.Pos.none (P_Iden(File_management.Pos.none ([], "#cons"), true)) in
       let rs = List.map mkequiv rs in
       let (r, rs) = List.(hd rs, tl rs) in
       let cat eqlst eq = p_appl (p_appl cons eq) eqlst in
       let rhs = List.fold_left cat r rs in
-      make_pos $loc (lhs, rhs)
+      make_File_management.Pos $loc (lhs, rhs)
     }
 
 %%

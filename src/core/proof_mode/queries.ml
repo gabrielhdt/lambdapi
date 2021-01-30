@@ -9,6 +9,8 @@ open Type_checking.Print
 open Proof
 open! Lplib
 
+open Parsing
+
 (** Result of query displayed on hover in the editor*)
 type result = string option
 

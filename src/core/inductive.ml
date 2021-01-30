@@ -31,7 +31,7 @@ type config =
                         Interpretation of propositions as types. *) }
 
 (** [get_config ss pos] build the configuration using [ss]. *)
-let get_config : Type_checking.Sig_state.t -> File_management.Pos.popt -> config = fun ss pos ->
+let get_config : Parsing.Sig_state.t -> File_management.Pos.popt -> config = fun ss pos ->
   let builtin = Proof_mode.Builtin.get ss pos in
   { symb_Prop = builtin "Prop"
   ; symb_prf  = builtin "P" }
@@ -205,7 +205,7 @@ let fold_cons_type
    instance, with [inductive T:TYPE := c: T->T->T], we get [ind_T: Πp:T->Prop,
    (Πx0:T, π(p x0)-> Πx1:T, π(p x1)-> π(p (c x0 x1)) -> Πx:T, π(p x)]. *)
 let gen_rec_types :
-      config -> Type_checking.Sig_state.t -> popt -> inductive -> ind_pred_map -> string
+      config -> Parsing.Sig_state.t -> popt -> inductive -> ind_pred_map -> string
       -> term list =
   fun c _ pos ind_list ind_pred_map var_prefix ->
 

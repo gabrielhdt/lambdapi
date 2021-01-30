@@ -13,7 +13,7 @@ open File_management.Files
 open Parsing.Syntax
 open! Proof_mode
 open! Type_checking
-open Type_checking.Sig_state
+open Parsing.Sig_state
 open Type_checking.Print
 
 
@@ -426,7 +426,7 @@ fun compile ss cmd ->
       let ps =
         match proof_term with
         | None -> ps
-        | Some m -> {ps with proof_goals = Goal.of_meta m :: ps.proof_goals}
+        | Some m -> {ps with proof_goals = Proof.Goal.of_meta m :: ps.proof_goals}
       in
       (* Apply tac_refine in case of a definition. *)
       let ps =
@@ -439,7 +439,7 @@ fun compile ss cmd ->
                 let t = Scope.scope_term pdata_expo ss [] pt in
                 Tactics.tac_refine pt.pos ps t
       in
-      if p_sym_prf = None && not (finished ps) then wrn pos
+      if p_sym_prf = None && not (Proof.finished ps) then wrn pos
         "Some metavariables could not be solved: a proof must be given";
       { pdata_stmt_pos = p_sym_nam.pos; pdata_p_state = ps; pdata_tactics = ts
       ; pdata_finalize = finalize ; pdata_end_pos = pe.pos; pdata_expo }
@@ -467,7 +467,7 @@ fun compile ss cmd ->
             (* Make sure the operator has a fully qualified [qid]. *)
             let unop = (s, prio, with_path sym.sym_path qid) in
             out 3 "(conf) %a %a\n" pp_symbol sym notation (Prefix unop);
-            add_unop ss (Pos.make cmd.pos s) (sym, unop)
+            add_unop ss (File_management.Pos.make cmd.pos s) (sym, unop)
         | P_config_binop(binop)   ->
             let (s, assoc, prio, qid) = binop in
             (* Define the binary operator [sym]. *)
@@ -475,7 +475,7 @@ fun compile ss cmd ->
             (* Make sure the operator has a fully qualified [qid]. *)
             let binop = (s, assoc, prio, with_path sym.sym_path qid) in
             out 3 "(conf) %a %a\n" pp_symbol sym notation (Infix binop);
-            add_binop ss (Pos.make cmd.pos s) (sym, binop);
+            add_binop ss (File_management.Pos.make cmd.pos s) (sym, binop);
         | P_config_quant(qid)     ->
             let sym = find_sym ~prt:true ~prv:true false ss qid in
             out 3 "(conf) %a quantifier\n" pp_symbol sym;

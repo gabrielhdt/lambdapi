@@ -7,7 +7,7 @@ open Timed
 open Parsing.Terms
 open File_management.Error
 open File_management.Pos
-open Type_checking.Sig_state
+open Parsing.Sig_state
 
 (** [get pos map name] returns the symbol mapped to the “builtin symbol” named
    [name] i n the map [map], which should contain all the builtin symbols that

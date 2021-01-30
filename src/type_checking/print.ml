@@ -13,16 +13,16 @@ open Timed
 
 open Parsing.Terms
 open File_management.Error
-open Parsing.Syntax
 
-open Sig_state
+open Parsing.Sig_state
+open! Parsing
 
 (** Logging function for printing. *)
 let log_prnt = new_logger 'p' "prnt" "pretty-printing"
 let log_prnt = log_prnt.logger
 
 (** Current signature state. *)
-let sig_state : sig_state ref = ref Sig_state.dummy
+let sig_state : sig_state ref = ref Parsing.Sig_state.dummy
 
 (** Flag controling the printing of the domains of λ-abstractions. *)
 let print_domains : bool ref = File_management.Error.register_flag "print_domains" false

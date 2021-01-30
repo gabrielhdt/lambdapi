@@ -3,7 +3,7 @@
     provided. *)
 open Lplib
 open Sedlexing
-open Pos
+open File_management.Pos
 
 type token =
   (* end of file *)
@@ -158,7 +158,7 @@ end = struct
     | _ -> ()
 and nom_comment : lexbuf -> unit = fun buf ->
     match%sedlex buf with
-    | eof -> raise (SyntaxError (Pos.none "Unterminated comment."))
+    | eof -> raise (SyntaxError (File_management.Pos.none "Unterminated comment."))
     | "*/" -> nom buf
     | any -> nom_comment buf
     | _ -> assert false
@@ -372,7 +372,7 @@ and nom_comment : lexbuf -> unit = fun buf ->
     | _ ->
         let loc = lexing_positions buf in
         let loc = locate loc in
-        raise (SyntaxError(Pos.make (Some(loc)) (Utf8.lexeme buf)))
+        raise (SyntaxError(File_management.Pos.make (Some(loc)) (Utf8.lexeme buf)))
 
   (* Using the default case to lex identifiers result in a *very* slow lexing.
      This is why a regular expression which includes many characters is

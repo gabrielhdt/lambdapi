@@ -2,7 +2,7 @@
 
 open Lplib
 open Lplib.Base
-<<<<<<< HEAD:src/parsing/syntax.ml
+open Lplib.Extra
 
 open File_management.Pos
 
@@ -35,11 +35,6 @@ type p_match_strat =
   (** Any rule that filters a term can be applied (even if a rule defined
       earlier filters the term as well). This is the default. *)
    
-=======
-open Lplib.Extra
-open Pos
-
->>>>>>> origin/master:src/core/syntax.ml
 (** Representation of a (located) identifier. *)
 type ident = strloc
 
@@ -473,7 +468,6 @@ end; *)
 
 let fold_idents : ('a -> qident -> 'a) -> 'a -> p_command list -> 'a =
   fun f ->
-
   let add_idopt : StrSet.t -> ident option -> StrSet.t = fun vs idopt ->
     match idopt with
     | None -> vs
@@ -503,12 +497,12 @@ let fold_idents : ('a -> qident -> 'a) -> 'a -> p_command list -> 'a =
     | P_Abst ((idopts,Some t,_)::args_list, u)
     | P_Prod ((idopts,Some t,_)::args_list, u) ->
         fold_term_vars (add_idopts vs idopts) (fold_term_vars vs a t)
-          (Pos.make pos (P_Abst (args_list, u)))
+          (File_management.Pos.make pos (P_Abst (args_list, u)))
 
     | P_Abst ((idopts,None,_)::args_list, u)
     | P_Prod ((idopts,None,_)::args_list, u) ->
         fold_term_vars (add_idopts vs idopts) a
-          (Pos.make pos (P_Abst (args_list, u)))
+          (File_management.Pos.make pos (P_Abst (args_list, u)))
 
     | P_Abst ([], t)
     | P_Prod ([], t)
@@ -517,10 +511,10 @@ let fold_idents : ('a -> qident -> 'a) -> 'a -> p_command list -> 'a =
 
     | P_LLet (id, (idopts,None,_)::args_list, u, v, w) ->
         fold_term_vars (add_idopts vs idopts) a
-          (Pos.make pos (P_LLet (id, args_list, u, v, w)))
+          (File_management.Pos.make pos (P_LLet (id, args_list, u, v, w)))
     | P_LLet (id, (idopts,Some t,_)::args_list, u, v, w) ->
         fold_term_vars (add_idopts vs idopts) (fold_term_vars vs a t)
-          (Pos.make pos (P_LLet (id, args_list, u, v, w)))
+          (File_management.Pos.make pos (P_LLet (id, args_list, u, v, w)))
 
     | P_LLet (id, [], None, v, w) ->
         fold_term_vars (StrSet.add id.elt vs) (fold_term_vars vs a v) w
@@ -611,11 +605,11 @@ let fold_idents : ('a -> qident -> 'a) -> 'a -> p_command list -> 'a =
     | P_rules rs -> List.fold_left fold_rule a rs
     | P_inductive (_, ind_list) -> List.fold_left fold_inductive a ind_list
     | P_symbol {p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf;_} ->
-        let d = Pos.none P_Type in
+        let d = File_management.Pos.none P_Type in
         let t = match p_sym_trm with Some t -> t | None -> d in
         Option.fold fold_proof
           (fold_term a
-             (Pos.make pos
+             (File_management.Pos.make pos
                 (P_LLet (p_sym_nam, p_sym_arg, p_sym_typ, t, d))))
         p_sym_prf
   in

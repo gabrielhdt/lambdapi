@@ -205,7 +205,7 @@ let get_logs ~doc ~line ~pos =
     let pos_str =
       match posopt with
       | None -> "None"
-      | Some Pos.{start_line; start_col; _} ->
+      | Some File_management.Pos.{start_line; start_col; _} ->
           Printf.sprintf "(%d, %d)" start_line start_col
     in
     let log_str =
@@ -216,10 +216,10 @@ let get_logs ~doc ~line ~pos =
   Lsp_io.log_error "get_logs"
     (List.fold_left (^) "\n" (List.map log_to_str doc.Lp_doc.logs));
   (* DEBUG LOG END *)
-  let before_cursor (npos : Pos.popt) =
+  let before_cursor (npos : File_management.Pos.popt) =
     match npos with
     | None -> Lsp_io.log_error "get_logs" "None pos"; true
-    | Some Pos.{start_line; _} -> start_line-1 <= line
+    | Some File_management.Pos.{start_line; _} -> start_line-1 <= line
   in
   List.fold_left_while (fun acc x -> acc^(fst x))
                   (fun (_, p) -> before_cursor p) "" doc.Lp_doc.logs

@@ -9,9 +9,6 @@
 (************************************************************************)
 (* Status: Very Experimental                                            *)
 (************************************************************************)
-
-open Proof_mode
-open Type_checking
    
 (* Whether to send extended lsp messages *)
 let std_protocol = ref true

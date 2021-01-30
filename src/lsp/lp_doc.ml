@@ -10,7 +10,6 @@
 (* Status: Very Experimental                                            *)
 (************************************************************************)
 
-open Proof_mode
 open Parsing
 open! Lplib
 
@@ -39,7 +38,7 @@ type t = {
   mutable root  : Pure.state; (* Only mutated after parsing. *)
   mutable final : Pure.state; (* Only mutated after parsing. *)
   nodes : doc_node list;
-  logs : (string * Pos.popt) list;
+  logs : (string * File_management.Pos.popt) list;
   map : (Syntax.p_module_path * string) RangeMap.t;
 }
 

@@ -6,10 +6,8 @@
 
 open Timed
 open File_management.Files
-open Parsing.Terms
-open Parsing.Syntax
 
-open! Parsing
+open Terms
    
 (** Path of the module. *)
 let path = Path.ghost "unif_rule"

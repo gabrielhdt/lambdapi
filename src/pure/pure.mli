@@ -12,7 +12,7 @@ module Command : sig
   val get_pos : t -> Pos.popt
 end
 
-val rangemap : Command.t list -> Syntax.qident_aux RangeMap.t
+val rangemap : Command.t list -> Parsing.Syntax.qident_aux RangeMap.t
 
 (** Abstract representation of a tactic (proof item). *)
 module Tactic : sig
@@ -47,7 +47,7 @@ val current_goals : proof_state -> goal list
 
 (** Result type of the [handle_command] function. *)
 type command_result =
-  | Cmd_OK    of state * Queries.result
+  | Cmd_OK    of state * Proof_mode.Queries.result
   (** Command is done. *)
   | Cmd_Proof of proof_state * Tactic.t list * Pos.popt * Pos.popt
   (** Enter proof mode (positions are for statement and qed). *)
@@ -56,7 +56,7 @@ type command_result =
 
 (** Result type of the [handle_tactic] function. *)
 type tactic_result =
-  | Tac_OK    of proof_state * Queries.result
+  | Tac_OK    of proof_state * Proof_mode.Queries.result
   | Tac_Error of Pos.popt option * string
 
 (** [initial_state fname] gives an initial state for working with the (source)
