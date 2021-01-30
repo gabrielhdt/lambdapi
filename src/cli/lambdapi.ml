@@ -5,7 +5,6 @@ open Lplib.Extra
 
 open Cmdliner
 open Core
-open Type_checking
 open File_management.Files
 open File_management.Error
 open Version
