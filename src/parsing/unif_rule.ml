@@ -30,11 +30,11 @@ let sign : Sign.t =
     made of only one unification. *)
 let equiv : sym =
   let path = List.map (fun s -> (s, false)) path in
-  let bo = ("≡", Assoc_none, 1.1, File_management.Pos.none (path, "#equiv")) in
+  let bo = ("≡", Pratter.Neither, 1.1, File_management.Pos.none (path, "#equiv")) in
   let sym =
     Sign.add_symbol sign Public Defin Eager (File_management.Pos.none "#equiv") Kind []
   in
-  Sign.add_binop sign "≡" (sym, bo);
+  Sign.add_binop sign sym bo;
   sym
 
 (** Cons-like symbol for equivalences. The right-hand side of a unification
@@ -43,11 +43,11 @@ let equiv : sym =
     [t ≡ u; v ≡ w; ...]. *)
 let cons : sym =
   let path = List.map (fun s -> (s, false)) path in
-  let bo = (";", Assoc_right, 1.0, File_management.Pos.none (path, "#cons")) in
+  let bo = (";", Pratter.Right, 1.0, File_management.Pos.none (path, "#cons")) in
   let sym =
     Sign.add_symbol sign Public Defin Eager (File_management.Pos.none "#cons") Kind []
   in
-  Sign.add_binop sign ";" (sym, bo);
+  Sign.add_binop sign sym bo;
   sym
 
 (** [unpack eqs] transforms a term of the form

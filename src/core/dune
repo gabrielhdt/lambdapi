@@ -9,6 +9,5 @@
  (name core)
  (public_name lambdapi.core)
  (synopsis "LambdaPi interactive theorem prover [core]")
- (preprocess (per_module ((action (run pa_ocaml %{input-file})) parser)))
- (flags (:standard -w -27))
- (libraries unix stdlib-shims timed bindlib earley.core why3 lplib file_management parsing type_checking proof_mode))
+ (modules :standard)
+ (libraries unix stdlib-shims timed bindlib why3 lplib file_management parsing type_checking proof_mode))

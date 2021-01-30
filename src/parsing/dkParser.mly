@@ -3,15 +3,13 @@
 open! Lplib
 
 open Timed
-open! File_management
-open File_management.Pos
+open Pos
 open Syntax
-open Legacy_lexer
-open Parser
+open DkLexer
 
 (** {b NOTE} we maintain the invariant described in the [Parser] module: every
-    error should have an attached position.  We do not open [Error] to avoid
-    calls to [Error.fatal] and [Error.fatal_no_pos].  In case of an error,
+    error should have an attached position.  We do not open [Console] to avoid
+    calls to [Console.fatal] and [Console.fatal_no_pos].  In case of an error,
     the [parser_fatal] function should be used instead. *)
 
 (** [get_args t] decomposes the parser level term [t] into a spine [(h,args)],
@@ -42,7 +40,7 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
   let (ctx, lhs, rhs) = r.elt in
   (* Check for (deprecated) annotations in the context. *)
   let get_var (x,ao) =
-    let open File_management.Error in
+    let open Console in
     let fn a = wrn a.pos "Ignored type annotation." in
     (if !verbose > 1 then Option.iter fn ao); x
   in
@@ -52,7 +50,7 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
   in
   (* Find the maximum number of arguments a variable is applied to. *)
   (* Using [fatal] is OK here as long as it is called with term positions. *)
-  let fatal = File_management.Error.fatal in
+  let fatal = Console.fatal in
   let arity = Hashtbl.create 7 in
   let rec compute_arities env t =
     let (h, args) = get_args t in
@@ -88,8 +86,6 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
       | P_Meta(_,_)       -> assert false
       | P_Patt(_,_)       -> assert false
       | P_NLit(_)         -> assert false
-      | P_UnaO(_,_)       -> assert false
-      | P_BinO(_,_,_)     -> assert false
       | P_Wrap(_)         -> assert false
       | P_Expl(_)         -> assert false
     end;
@@ -177,8 +173,6 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
     | P_Patt(_,_)       -> fatal h.pos "Pattern in legacy rule."
     | P_LLet(_,_,_,_,_) -> fatal h.pos "Let expression in legacy rule."
     | P_NLit(_)         -> fatal h.pos "Nat literal in legacy rule."
-    | P_UnaO(_,_)       -> fatal h.pos "Unary operator in legacy rule."
-    | P_BinO(_,_,_)     -> fatal h.pos "Binary operator in legacy rule."
     | P_Wrap(_)         -> fatal h.pos "Wrapping constructor in legacy rule."
     | P_Expl(_)         -> fatal h.pos "Explicit argument in legacy rule."
   in
@@ -207,8 +201,7 @@ let build_config : Pos.pos -> string -> string option -> eval_config =
     | (i     , Some "WHNF") -> config (Some(i)) WHNF
     | (i     , None       ) -> config (Some(i)) NONE
     | (_     , _          ) -> raise Exit (* captured below *)
-  with _ -> parser_fatal loc "Invalid command configuration."
-
+  with _ -> Console.fatal (Some(loc)) "Invalid command configuration."
 %}
 
 %token EOF
@@ -237,21 +230,21 @@ let build_config : Pos.pos -> string -> string option -> eval_config =
 %token <string> ID
 %token <Syntax.p_module_path * string> QID
 
-%start line
-%type <Syntax.p_command> line
+%start command
+%type <Syntax.p_command> command
 
 %right ARROW FARROW
 
 %%
 
-line:
+command:
   | p_sym_mod=modifier* s=ID p_sym_arg=param* COLON a=term DOT
     {
       let p_sym_mod =
         match List.find_opt is_prop p_sym_mod with
         | Some(_) -> p_sym_mod
         | None -> (* we add the property "constant" *)
-           make_pos Lexing.(dummy_pos, dummy_pos) (P_prop(P_Const)) :: p_sym_mod
+           make_pos Lexing.(dummy_pos, dummy_pos) (P_prop(Const)) :: p_sym_mod
       in
       let p_sym_nam = make_pos $loc(s) s in
       let p_sym_typ = Some a in
@@ -375,10 +368,7 @@ line:
       let q = make_pos $loc (P_query_assert(mf, P_assert_conv(t,u))) in
       make_pos $loc (P_query q)
     }
-  | r=REQUIRE    DOT {
-      do_require (locate $loc) r;
-      make_pos $loc (P_require(false,[r]))
-    }
+  | r=REQUIRE DOT { make_pos $loc (P_require(false,[r])) }
   | EOF {
       raise End_of_file
     }
@@ -393,8 +383,8 @@ param:
     }
 
 modifier:
-  | KW_PRV { make_pos $loc (P_expo(P_Privat)) }
-  | KW_INJ { make_pos $loc (P_prop(P_Injec)) }
+  | KW_PRV { make_pos $loc (P_expo(Terms.Privat)) }
+  | KW_INJ { make_pos $loc (P_prop(Terms.Injec)) }
 
 context_item:
   | x=ID ao=option(COLON a=term { a }) { (make_pos $loc(x) x, ao) }
