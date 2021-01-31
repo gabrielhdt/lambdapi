@@ -8,8 +8,10 @@
 open! Lplib
 open Lplib.Base
 
+open Backbone
 open Console
 open Pos
+open Parsing
 open Syntax
 
 let string = Format.pp_print_string
