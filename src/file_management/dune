@@ -2,4 +2,4 @@
  (name file_management)
  (public_name lambdapi.file_management)
  (modules :standard)
- (libraries timed why3 lplib))
+ (libraries timed lplib))

@@ -2,4 +2,4 @@
  (name proof_mode)
  (public_name lambdapi.proof_mode)
  (modules :standard)
- (libraries type_checking))
+ (libraries type_checking why3))
