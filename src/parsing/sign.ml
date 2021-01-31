@@ -89,6 +89,24 @@ let current_sign () =
   in
   PathMap.find mp !loaded
 
+(** [path] and [ghost_sign] provide a signature to be used to handle 
+    unification rules.
+    The signature is not attached to any real lambdapi file and is henceforth
+    qualified to be a "ghost" signature. *)
+
+(** Path of the module. *)
+let path = Path.ghost "unif_rule"
+
+(** Ghost signature holding the symbols used in unification rules.
+    - All signatures depend on it (dependency set in
+      {!val:Sig_state.create_sign}).
+    - All signatures open it (opened in {!val:Sig_state.of_sign}).
+    - It is automatically loaded. *)
+let ghost_sign : t =
+  let dummy = dummy () in
+  let s = {dummy with sign_path = path} in
+  loaded := File_management.Files.PathMap.add path s !loaded; s
+
 (** [create_sym e p name type blist] creates a new symbol
     with the exposition [e], the property [p], the name [name]
     the type [type] and no implicit arguments *)

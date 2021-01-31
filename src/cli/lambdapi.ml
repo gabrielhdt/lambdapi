@@ -89,7 +89,7 @@ let decision_tree_cmd : Cliconf.t -> (Syntax.p_module_path * string) -> unit =
       let ss = Sig_state.of_sign sign in
       if String.contains sym '#' then
         (* If [sym] contains a hash, it’s a ghost symbol. *)
-        try fst (StrMap.find sym Timed.(!(Unif_rule.sign.sign_symbols)))
+        try fst (StrMap.find sym Timed.(!(Sign.ghost_sign.sign_symbols)))
         with Not_found ->
           fatal_no_pos "Symbol \"%s\" not found in ghost modules." sym
       else

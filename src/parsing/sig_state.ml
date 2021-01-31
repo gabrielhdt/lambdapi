@@ -37,7 +37,7 @@ type t = sig_state
     as dependencies. *)
 let create_sign : Path.t -> Sign.t = fun sign_path ->
   let d = Sign.dummy () in
-  { d with sign_path ; sign_deps = ref (PathMap.singleton Unif_rule.path []) }
+  { d with sign_path ; sign_deps = ref (PathMap.singleton Sign.path []) }
 
 (** Symbol properties needed for the signature *)
 type sig_symbol =
@@ -152,7 +152,7 @@ let dummy : sig_state =
 (** [of_sign sign] creates a state from the signature [sign] with ghost
     signatures opened. *)
 let of_sign : Sign.t -> sig_state = fun signature ->
-  open_sign {dummy with signature} Unif_rule.sign
+  open_sign {dummy with signature} Sign.ghost_sign
 
 (** [find_sym ~prt ~prv b st qid] returns the symbol
     corresponding to the qualified identifier [qid]. If [fst qid.elt] is

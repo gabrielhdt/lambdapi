@@ -1,28 +1,8 @@
-(** Symbols and signature for unification rules.
-
-    This module provides a signature to be used to handle unification rules.
-    The signature is not attached to any real lambdapi file and is henceforth
-    qualified to be a "ghost" signature. *)
-
-open Timed
-open File_management.Files
+(** Symbols and signature for unification rules. *)
 
 open Terms
+open Sign
    
-(** Path of the module. *)
-let path = Path.ghost "unif_rule"
-
-(** Ghost signature holding the symbols used in unification rules.
-    - All signatures depend on it (dependency set in
-      {!val:Sig_state.create_sign}).
-    - All signatures open it (opened in {!val:Sig_state.of_sign}).
-    - It is automatically loaded. *)
-let sign : Sign.t =
-  let dummy = Sign.dummy () in
-  let s = {dummy with Sign.sign_path = path} in
-  Sign.loaded := File_management.Files.PathMap.add path s !(Sign.loaded);
-  s
-
 (** Symbol representing an atomic unification problem. The term [equiv t
     u] represents [t ≡ u]. The left-hand side of a unification rule is
     made of only one unification. *)
@@ -30,9 +10,9 @@ let equiv : sym =
   let path = List.map (fun s -> (s, false)) path in
   let bo = ("≡", Pratter.Neither, 1.1, File_management.Pos.none (path, "#equiv")) in
   let sym =
-    Sign.add_symbol sign Public Defin Eager (File_management.Pos.none "#equiv") Kind []
+    Sign.add_symbol ghost_sign Public Defin Eager (File_management.Pos.none "#equiv") Kind []
   in
-  Sign.add_binop sign sym bo;
+  Sign.add_binop ghost_sign sym bo;
   sym
 
 (** Cons-like symbol for equivalences. The right-hand side of a unification
@@ -43,9 +23,9 @@ let cons : sym =
   let path = List.map (fun s -> (s, false)) path in
   let bo = (";", Pratter.Right, 1.0, File_management.Pos.none (path, "#cons")) in
   let sym =
-    Sign.add_symbol sign Public Defin Eager (File_management.Pos.none "#cons") Kind []
+    Sign.add_symbol ghost_sign Public Defin Eager (File_management.Pos.none "#cons") Kind []
   in
-  Sign.add_binop sign sym bo;
+  Sign.add_binop ghost_sign sym bo;
   sym
 
 (** [unpack eqs] transforms a term of the form
