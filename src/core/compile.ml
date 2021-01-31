@@ -3,8 +3,10 @@
 open! Lplib
 
 open Timed
-open Sign
+open Backbone
 open Console
+open Parsing
+open Sign
 open Files
 
 (** [gen_obj] indicates whether we should generate object files when compiling
@@ -104,6 +106,7 @@ let compile_file : file_path -> Sign.t = fun fname ->
   let mp = Files.file_to_module fname in
   (* Run compilation. *)
   compile Stdlib.(!recompile) mp
+
 (** Pure wrappers around compilation functions. Functions provided perform the
     same computations as the ones defined earlier, but restores the state when
     they have finished. An optional library mapping or state can be passed as
