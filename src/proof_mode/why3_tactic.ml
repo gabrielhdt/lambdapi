@@ -7,7 +7,7 @@ open File_management.Error
 open Scoping.Terms
 open Timed
 open! Type_checking
-open Type_checking.Print
+open Scoping.Print
 
 open! Scoping
    

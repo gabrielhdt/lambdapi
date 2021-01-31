@@ -8,7 +8,7 @@ open File_management.Pos
 open Parsing.Syntax
 open Proof
 open! Type_checking
-open Type_checking.Print
+open Scoping.Print
 open Timed
 
 open! Scoping

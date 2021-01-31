@@ -14,7 +14,7 @@ open Timed
 open File_management.Pos
 open File_management.Error
 open Scoping.Terms
-open Type_checking.Print
+open Scoping.Print
 open Parsing.Syntax
 
 (** Logging function for generating of inductive principle. *)

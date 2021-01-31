@@ -8,7 +8,7 @@ open Scoping.Terms
 open! Scoping
 open Scoping.Basics
 open File_management.Error
-open Type_checking.Print
+open Scoping.Print
 open Proof
 open! Type_checking
    

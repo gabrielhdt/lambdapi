@@ -14,7 +14,7 @@ open Parsing.Syntax
 open! Proof_mode
 open! Type_checking
 open Scoping.Sig_state
-open Type_checking.Print
+open Scoping.Print
 
 
 (** Logging function for command handling. *)

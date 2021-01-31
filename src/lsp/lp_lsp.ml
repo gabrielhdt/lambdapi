@@ -14,7 +14,6 @@ open! Lplib
 open Lplib.Extra
 
 open Scoping
-open Type_checking
 
 module F = Format
 module J = Yojson.Basic
