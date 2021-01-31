@@ -8,7 +8,7 @@ open Core
 open File_management.Files
 open File_management.Error
 open Version
-open! Parsing
+open Scoping
 
 (* NOTE only standard [Stdlib] references here. *)
 
@@ -75,7 +75,7 @@ let lsp_server_cmd : Cliconf.t -> bool -> string -> unit =
   File_management.Error.handle_exceptions run
 
 (** Printing a decision tree. *)
-let decision_tree_cmd : Cliconf.t -> (Syntax.p_module_path * string) -> unit =
+let decision_tree_cmd : Cliconf.t -> (Parsing.Syntax.p_module_path * string) -> unit =
   fun cfg (mp, sym) ->
   let run _ =
     Timed.(verbose := 0); (* To avoid printing the "Checked ..." line *)
@@ -144,11 +144,11 @@ let lsp_log_file : string Term.t =
 
 (** Specific to the ["decision-tree"] command. *)
 
-let qsym : (Syntax.p_module_path * string) Term.t =
-  let qsym_conv: (Syntax.p_module_path * string) Arg.conv =
+let qsym : (Parsing.Syntax.p_module_path * string) Term.t =
+  let qsym_conv: (Parsing.Syntax.p_module_path * string) Arg.conv =
     let parse (s: string):
-      (Syntax.p_module_path * string, [>`Msg of string]) result =
-      match Parser.parse_qident s with
+      (Parsing.Syntax.p_module_path * string, [>`Msg of string]) result =
+      match Parsing.Parser.parse_qident s with
       | Error(i, Some(pos)) ->
         let msg =
           Format.sprintf "[%d:%s] invalid identifier" i (File_management.Pos.to_string pos)

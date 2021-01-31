@@ -11,8 +11,8 @@ open! Lplib
 open Lplib.Base
 
 open Timed
-open Parsing.Terms
-open Parsing.Tree_types
+open Scoping.Terms
+open Scoping.Tree_types
 
 (** Printing hint for conversion to graphviz. *)
 type dot_term =

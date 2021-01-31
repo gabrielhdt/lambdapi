@@ -13,7 +13,7 @@
 open! Lplib
 open Lplib.Extra
 
-open Parsing
+open Scoping
 open Type_checking
 
 module F = Format

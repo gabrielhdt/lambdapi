@@ -4,10 +4,10 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open Parsing.Terms
+open Terms
 open File_management.Error
 open File_management.Pos
-open Parsing.Sig_state
+open Sig_state
 
 (** [get pos map name] returns the symbol mapped to the “builtin symbol” named
    [name] i n the map [map], which should contain all the builtin symbols that

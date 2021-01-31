@@ -7,7 +7,7 @@
 open Lplib.Base
 open Lplib.Extra
 
-open! Parsing
+open! Scoping
    
 open Timed
 open File_management.Error

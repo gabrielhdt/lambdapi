@@ -3,13 +3,13 @@
 open File_management.Error
 open File_management.Pos
 open Parsing.Syntax
-open Parsing.Terms (* empty_problem only! *)
+open Scoping.Terms (* empty_problem only! *)
 open! Type_checking
 open Type_checking.Print
 open Proof
 open! Lplib
 
-open Parsing
+open Scoping
 
 (** Result of query displayed on hover in the editor*)
 type result = string option

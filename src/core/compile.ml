@@ -3,8 +3,8 @@
 open! Lplib
 
 open Timed
-open! Parsing
-open Parsing.Sign
+open! Scoping
+open Scoping.Sign
 open Debug_console
 open! File_management
 open File_management.Error
@@ -16,17 +16,17 @@ let gen_obj = Stdlib.ref false
 
 (** [parse_file fname] selects and runs the correct parser on file [fname], by
     looking at its extension. *)
-let parse_file : string -> Syntax.ast = fun fname ->
+let parse_file : string -> Parsing.Syntax.ast = fun fname ->
   match Filename.check_suffix fname src_extension with
-  | true  -> Parser.parse_file fname
-  | false -> Parser.Dk.parse_file fname
+  | true  -> Parsing.Parser.parse_file fname
+  | false -> Parsing.Parser.Dk.parse_file fname
 
 (** [compile force path] compiles the file corresponding to [path], when it is
     necessary (the corresponding object file does not exist,  must be updated,
     or [force] is [true]).  In that case,  the produced signature is stored in
     the corresponding object file. *)
 let rec compile : bool -> Path.t -> Sign.t = fun force path ->
-  let base = File_management.Files.module_to_file (List.map LpLexer.unquote path) in
+  let base = File_management.Files.module_to_file (List.map Parsing.LpLexer.unquote path) in
   let src () =
     (* Searching for source is delayed because we may not need it
        in case of "ghost" signatures (such as for unification rules). *)
@@ -55,8 +55,8 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
       let src = src () in
       out 2 "Loading %s%s ...\n%!" src forced;
       loading := path :: !loading;
-      let sign = Parsing.Sig_state.create_sign path in
-      let sig_st = Stdlib.ref (Parsing.Sig_state.of_sign sign) in
+      let sign = Scoping.Sig_state.create_sign path in
+      let sig_st = Stdlib.ref (Scoping.Sig_state.of_sign sign) in
       (* [sign] is added to [loaded] before processing the commands so that it
          is possible to qualify the symbols of the current modules. *)
       loaded := PathMap.add path sign !loaded;

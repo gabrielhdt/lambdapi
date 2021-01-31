@@ -9,14 +9,6 @@
 open! Lplib
 open File_management.Pos
 
-(*
-open Syntax
-
-open! File_management
-open Files
-open File_management.Pos
- *)
-
 (** [parser_fatal loc fmt] is a wrapper for [Console.fatal] that enforces
     that the error has an attached source code position. *)
 let parser_fatal : pos -> ('a,'b) File_management.Error.koutfmt -> 'a = fun loc fmt ->

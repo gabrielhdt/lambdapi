@@ -9,8 +9,8 @@ open Lplib.Extra
 
 open Timed
 open! Core
-open! Parsing
-open Parsing.Terms
+open! Scoping
+open Scoping.Terms
 
 (** [print_sym oc s] outputs the fully qualified name of [s] to [oc]. Modules
     are separated with ["."]. *)

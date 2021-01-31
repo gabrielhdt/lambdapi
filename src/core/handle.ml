@@ -5,15 +5,15 @@ open Lplib.Extra
 
 open Timed
 open File_management.Error
-open! Parsing
-open Parsing.Terms
-open Parsing.Sign
+open! Scoping
+open Scoping.Terms
+open Scoping.Sign
 open File_management.Pos
 open File_management.Files
 open Parsing.Syntax
 open! Proof_mode
 open! Type_checking
-open Parsing.Sig_state
+open Scoping.Sig_state
 open Type_checking.Print
 
 
@@ -320,7 +320,7 @@ fun compile ss cmd ->
       fatal p_sym_nam.pos "Symbol [%s] already exists." id;
     (* Verify modifiers. *)
     let (prop, expo, mstrat) = handle_modifiers p_sym_mod in
-    let opaq = List.exists Syntax.is_opaq p_sym_mod in
+    let opaq = List.exists Parsing.Syntax.is_opaq p_sym_mod in
     let pdata_expo = if p_sym_def && opaq then Privat else expo in
     (match p_sym_def, opaq, prop, mstrat with
      | false, true, _, _ ->

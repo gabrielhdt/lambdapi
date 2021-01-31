@@ -4,7 +4,7 @@
     The interface for the Pratter library can be seen at
     @see <https://forge.tedomum.net/koizel/pratter> *)
 
-open Syntax
+open Parsing.Syntax
 
 module Pratt : sig
   val parse : Sig_state.t -> Env.t -> p_term -> p_term
@@ -51,7 +51,7 @@ end = struct
   end
 
   let parse : Sig_state.t -> Env.t -> p_term -> p_term = fun st env t ->
-    let (h,args) = Syntax.p_get_args t in
+    let (h,args) = Parsing.Syntax.p_get_args t in
     let strm = Stream.of_list (h::args) in
     let module Parse = Pratter.Make(Pratt_terms) in
     try Parse.expression (st, env) strm with

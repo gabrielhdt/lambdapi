@@ -4,7 +4,7 @@
 open Lplib.Extra
 
 open Core (* Lambdapi core *)
-open Parsing
+open Scoping
    
 let _ =
   File_management.Files.set_lib_root None;
@@ -36,7 +36,7 @@ let test_xtc () =
 
 (** Decision tree of regular symbol. *)
 let test_dtree () =
-  match Parser.parse_qident "tests.OK.bool.bool_or" with
+  match Parsing.Parser.parse_qident "tests.OK.bool.bool_or" with
   | Ok(e) ->
       let sym =
         Sig_state.find_sym ~prt:true ~prv:true false bool_ss (File_management.Pos.none e)

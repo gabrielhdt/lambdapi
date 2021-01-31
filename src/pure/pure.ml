@@ -9,7 +9,8 @@ open File_management.Files
 open! File_management
 open! Type_checking
 open! Proof_mode
-  
+open! Scoping
+
 (** Representation of a single command (abstract). *)
 module Command = struct
   type t = Syntax.p_command

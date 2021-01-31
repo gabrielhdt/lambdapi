@@ -9,7 +9,7 @@ open Timed
 open File_management.Error
 open File_management.Files
 open Terms
-open Syntax
+open Parsing.Syntax
 open File_management.Pos
 
 (** Representation of an inductive type *)

@@ -5,10 +5,10 @@ open Lplib.Extra
 
 open Timed
 open File_management.Error
-open! Parsing
-open Parsing.Terms
-open Parsing.Basics
-open Parsing.Env
+open! Scoping
+open Scoping.Terms
+open Scoping.Basics
+open Scoping.Env
 open Print
 
 (** Logging function for unification. *)

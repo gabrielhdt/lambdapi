@@ -5,9 +5,9 @@ open Lplib.Extra
 
 open Timed
 open File_management.Error
-open! Parsing
-open Parsing.Terms
-open Parsing.Basics
+open! Scoping
+open Scoping.Terms
+open Scoping.Basics
 open Print
 
 (** The head-structure of a term t is:
@@ -411,7 +411,7 @@ let rec hnf : ctxt -> term -> term = fun ctx t ->
 
 (** [eval cfg ctx t] evaluates the term [t] in the context [ctx] according to
     configuration [cfg]. *)
-let eval : Syntax.eval_config -> ctxt -> term -> term = fun c ctx t ->
+let eval : Parsing.Syntax.eval_config -> ctxt -> term -> term = fun c ctx t ->
   match (c.strategy, c.steps) with
   | (_   , Some(0))
   | (NONE, _      ) -> t
