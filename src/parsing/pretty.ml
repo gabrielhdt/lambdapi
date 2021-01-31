@@ -10,9 +10,7 @@ open Lplib.Base
 
 open File_management.Error
 open File_management.Pos
-open Parsing.Syntax
-open! Parsing
-
+open Syntax
 
 let string = Format.pp_print_string
 

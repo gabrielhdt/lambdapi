@@ -65,7 +65,7 @@ let parse_cmd : Cliconf.t -> string list -> unit = fun cfg files ->
 (** Running the pretty-printing mode. *)
 let beautify_cmd : Cliconf.t -> string -> unit = fun cfg file ->
   let run _ =
-    Cliconf.init cfg; Pretty.beautify (Compile.parse_file file) in
+    Cliconf.init cfg; Parsing.Pretty.beautify (Compile.parse_file file) in
   File_management.Error.handle_exceptions run
 
 (** Running the LSP server. *)
@@ -159,7 +159,7 @@ let qsym : (Parsing.Syntax.p_module_path * string) Term.t =
         Error(`Msg(msg))
       | Ok(e) -> Ok(e)
     in
-    let print fmt qid = Pretty.qident fmt (File_management.Pos.none qid) in
+    let print fmt qid = Parsing.Pretty.qident fmt (File_management.Pos.none qid) in
     Arg.conv (parse, print)
   in
   let doc = "Fully qualified symbol name with dot separated identifiers." in

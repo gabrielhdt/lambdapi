@@ -86,7 +86,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
   fun ms ->
   let die (ms: p_modifier list) =
     let modifier oc (m: p_modifier) =
-      Format.fprintf oc "%a:\"%a\"" File_management.Pos.print_short m.pos Pretty.modifier m
+      Format.fprintf oc "%a:\"%a\"" File_management.Pos.print_short m.pos Parsing.Pretty.modifier m
     in
     fatal_no_pos "%a" (List.pp modifier "; ") ms
   in
@@ -199,7 +199,7 @@ type proof_data =
 let handle_cmd : (Path.t -> Sign.t) -> sig_state -> p_command ->
   sig_state * proof_data option * Queries.result =
 fun compile ss cmd ->
-  if !log_enabled then log_hndl (blu "%a") Pretty.command cmd;
+  if !log_enabled then log_hndl (blu "%a") Parsing.Pretty.command cmd;
   let scope_basic exp pt = Scope.scope_term exp ss Env.empty pt in
   match cmd.elt with
   | P_query(q) ->

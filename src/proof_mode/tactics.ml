@@ -76,7 +76,7 @@ let handle_tactic :
       (match ps.proof_goals with
        | g::_ -> log_tact "%a" Proof.Goal.pp g
        | [] -> ());
-      log_tact "%a" Pretty.tactic tac
+      log_tact "%a" Parsing.Pretty.tactic tac
     end;
   match tac.elt with
   | P_tac_query(q) -> ps, Queries.handle_query ss (Some ps) q

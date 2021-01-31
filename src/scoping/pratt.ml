@@ -57,8 +57,8 @@ end = struct
     try Parse.expression (st, env) strm with
     | Parse.OpConflict(t, u) ->
         File_management.Error.fatal t.pos "Operator conflict between \"%a\" and \"%a\""
-          Pretty.term t Pretty.term u
+          Parsing.Pretty.term t Parsing.Pretty.term u
     | Parse.TooFewArguments ->
-        File_management.Error.fatal t.pos "Malformed application in \"%a\"" Pretty.term t
+        File_management.Error.fatal t.pos "Malformed application in \"%a\"" Parsing.Pretty.term t
 end
 include Pratt
