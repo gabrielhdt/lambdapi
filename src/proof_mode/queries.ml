@@ -6,7 +6,7 @@ open Parsing.Syntax
 open Scoping.Terms (* empty_problem only! *)
 open! Type_checking
 open Scoping.Print
-open Proof
+open Proof  (* proof_state option only! *)
 open! Lplib
 
 open Scoping

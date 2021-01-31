@@ -10,4 +10,4 @@
  (public_name lambdapi.core)
  (synopsis "LambdaPi interactive theorem prover [core]")
  (modules :standard)
- (libraries unix stdlib-shims timed bindlib why3 lplib file_management parsing type_checking proof_mode))
+ (libraries proof_mode))
