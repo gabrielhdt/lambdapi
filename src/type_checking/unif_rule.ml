@@ -1,7 +1,8 @@
 (** Symbols and signature for unification rules. *)
 
-open Terms
-open Sign
+open Parsing.Terms
+open Parsing.Sign
+open! Parsing
    
 (** Symbol representing an atomic unification problem. The term [equiv t
     u] represents [t ≡ u]. The left-hand side of a unification rule is

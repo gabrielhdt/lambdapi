@@ -93,7 +93,7 @@ let to_HRS : Format.formatter -> Sign.t -> unit = fun oc sign ->
   (* Function to iterate over every symbols. *)
   let iter_symbols : (sym -> unit) -> unit = fun fn ->
     let not_on_ghosts _ (s, _) =
-      if not (Parsing.Unif_rule.is_ghost s) then fn s
+      if not (Type_checking.Unif_rule.is_ghost s) then fn s
     in
     let iter_symbols sign =
       StrMap.iter not_on_ghosts Sign.(!(sign.sign_symbols))
