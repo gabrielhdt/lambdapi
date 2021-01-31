@@ -1,10 +1,12 @@
 %{
-open Extra
+
+open! Lplib
+
 open Timed
+open Backbone
 open Pos
 open Syntax
-open Legacy_lexer
-open Parser
+open DkLexer
 
 (** {b NOTE} we maintain the invariant described in the [Parser] module: every
     error should have an attached position.  We do not open [Console] to avoid
@@ -85,8 +87,6 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
       | P_Meta(_,_)       -> assert false
       | P_Patt(_,_)       -> assert false
       | P_NLit(_)         -> assert false
-      | P_UnaO(_,_)       -> assert false
-      | P_BinO(_,_,_)     -> assert false
       | P_Wrap(_)         -> assert false
       | P_Expl(_)         -> assert false
     end;
@@ -114,7 +114,7 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
           (* No η-expansion required (enough arguments). *)
           let (lts1, lts2) = List.cut lts max in
           let ts1 = Array.of_list (List.map snd lts1) in
-          let patt = Pos.make p (P_Patt(Some(Pos.make h.pos x), ts1)) in
+          let patt = Pos.make p (P_Patt(Some(Pos.make h.pos x), Some ts1)) in
           add_args patt lts2
         else
           (* We need to η-expense (not enough arguments). *)
@@ -135,14 +135,14 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
           (* Build the pattern. *)
           let fn x = Pos.none (P_Iden(Pos.none ([],x), false)) in
           let args = Array.append ts (Array.map fn vars) in
-          let patt = Pos.make p (P_Patt(Some(Pos.make h.pos x), args)) in
+          let patt = Pos.make p (P_Patt(Some(Pos.make h.pos x), Some args)) in
           (* Build the abstraction. *)
           let xs = Array.map (fun x -> Some(Pos.none x)) vars in
           Pos.make p (P_Abst([Array.to_list xs, None, false], patt))
     | P_Wild when lts = [] && env = []                   -> t
     | P_Wild                                             ->
         let lts = List.map (fun (_, t) -> build env t) lts in
-        Pos.make t.pos (P_Patt(None, Array.of_list lts))
+        Pos.make t.pos (P_Patt(None, Some (Array.of_list lts)))
     | _                                                  ->
     match t.elt with
     | P_Iden(_)
@@ -174,8 +174,6 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
     | P_Patt(_,_)       -> fatal h.pos "Pattern in legacy rule."
     | P_LLet(_,_,_,_,_) -> fatal h.pos "Let expression in legacy rule."
     | P_NLit(_)         -> fatal h.pos "Nat literal in legacy rule."
-    | P_UnaO(_,_)       -> fatal h.pos "Unary operator in legacy rule."
-    | P_BinO(_,_,_)     -> fatal h.pos "Binary operator in legacy rule."
     | P_Wrap(_)         -> fatal h.pos "Wrapping constructor in legacy rule."
     | P_Expl(_)         -> fatal h.pos "Explicit argument in legacy rule."
   in
@@ -204,7 +202,7 @@ let build_config : Pos.pos -> string -> string option -> eval_config =
     | (i     , Some "WHNF") -> config (Some(i)) WHNF
     | (i     , None       ) -> config (Some(i)) NONE
     | (_     , _          ) -> raise Exit (* captured below *)
-  with _ -> parser_fatal loc "Invalid command configuration."
+  with _ -> Console.fatal (Some(loc)) "Invalid command configuration."
 %}
 
 %token EOF
@@ -233,73 +231,113 @@ let build_config : Pos.pos -> string -> string option -> eval_config =
 %token <string> ID
 %token <Syntax.p_module_path * string> QID
 
-%start line
-%type <Syntax.p_command> line
+%start command
+%type <Syntax.p_command> command
 
 %right ARROW FARROW
 
 %%
 
-line:
-  | s=ID ps=param* COLON a=term DOT
+command:
+  | p_sym_mod=modifier* s=ID p_sym_arg=param* COLON a=term DOT
     {
-      let t = P_symbol
-                (Terms.Public, Terms.Const, make_pos $loc(s) s, ps, a) in
-      make_pos $loc t
+      let p_sym_mod =
+        match List.find_opt is_prop p_sym_mod with
+        | Some(_) -> p_sym_mod
+        | None -> (* we add the property "constant" *)
+           make_pos Lexing.(dummy_pos, dummy_pos) (P_prop(Const)) :: p_sym_mod
+      in
+      let p_sym_nam = make_pos $loc(s) s in
+      let p_sym_typ = Some a in
+      let p_sym_trm = None in
+      let p_sym_prf = None in
+      let p_sym_def = false in
+      make_pos $loc
+        (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
+                   ;p_sym_def})
     }
-  | KW_DEF s=ID COLON a=term DOT
+  | p_sym_mod=modifier* KW_DEF s=ID COLON a=term DOT
     {
-      let t = P_symbol
-                (Terms.Public, Terms.Defin, make_pos $loc(s) s, [], a) in
-      make_pos $loc t
+      let p_sym_nam = make_pos $loc(s) s in
+      let p_sym_arg = [] in
+      let p_sym_typ = Some a in
+      let p_sym_trm = None in
+      let p_sym_prf = None in
+      let p_sym_def = false in
+      make_pos $loc
+        (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
+                   ;p_sym_def})
     }
-  | KW_INJ s=ID COLON a=term DOT
+  | p_sym_mod=modifier* KW_DEF s=ID COLON a=term DEFEQ t=term DOT
     {
-      let t = P_symbol
-                (Terms.Public, Terms.Injec, make_pos $loc(s) s, [], a) in
-      make_pos $loc t
+      let p_sym_nam = make_pos $loc(s) s in
+      let p_sym_arg = [] in
+      let p_sym_typ = Some a in
+      let p_sym_trm = Some t in
+      let p_sym_prf = None in
+      let p_sym_def = true in
+      make_pos $loc
+        (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
+                   ;p_sym_def})
     }
-  | KW_PRV s=ID COLON a=term DOT
+  | p_sym_mod=modifier* KW_DEF s=ID DEFEQ t=term DOT
     {
-      let t = P_symbol
-                (Terms.Protec, Terms.Defin, make_pos $loc(s) s, [], a) in
-      make_pos $loc t
+      let p_sym_nam = make_pos $loc(s) s in
+      let p_sym_arg = [] in
+      let p_sym_typ = None in
+      let p_sym_trm = Some t in
+      let p_sym_prf = None in
+      let p_sym_def = true in
+      make_pos $loc
+        (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
+                   ;p_sym_def})
     }
-  | KW_DEF s=ID COLON a=term DEFEQ t=term DOT
+  | p_sym_mod=modifier* KW_DEF s=ID p_sym_arg=param+ COLON a=term
+    DEFEQ t=term DOT
     {
-      let t = P_definition
-                (Terms.Public, false, make_pos $loc(s) s, [], Some(a), t) in
-      make_pos $loc t
+      let p_sym_nam = make_pos $loc(s) s in
+      let p_sym_typ = Some a in
+      let p_sym_trm = Some t in
+      let p_sym_prf = None in
+      let p_sym_def = true in
+      make_pos $loc
+        (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
+                   ;p_sym_def})
     }
-  | KW_DEF s=ID DEFEQ t=term DOT
+  | p_sym_mod=modifier* KW_DEF s=ID p_sym_arg=param+ DEFEQ t=term DOT
     {
-      let t = P_definition
-                (Terms.Public, false, make_pos $loc(s) s, [], None, t) in
-      make_pos $loc t
+      let p_sym_nam = make_pos $loc(s) s in
+      let p_sym_typ = None in
+      let p_sym_trm = Some t in
+      let p_sym_prf = None in
+      let p_sym_def = true in
+      make_pos $loc
+        (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
+                   ;p_sym_def})
     }
-  | KW_DEF s=ID ps=param+ COLON a=term DEFEQ t=term DOT
+  | p_sym_mod=modifier* KW_THM s=ID COLON a=term DEFEQ t=term DOT
     {
-      let t = P_definition
-                (Terms.Public, false, make_pos $loc(s) s, ps, Some(a), t) in
-      make_pos $loc t
+      let p_sym_nam = make_pos $loc(s) s in
+      let p_sym_arg = [] in
+      let p_sym_typ = Some a in
+      let p_sym_trm = Some t in
+      let p_sym_prf = None in
+      let p_sym_def = true in
+      make_pos $loc
+        (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
+                   ;p_sym_def})
     }
-  | KW_DEF s=ID ps=param+ DEFEQ t=term DOT
+  | p_sym_mod=modifier* KW_THM s=ID p_sym_arg=param+ COLON a=term
+    DEFEQ t=term DOT
     {
-      let t = P_definition
-                (Terms.Public, false, make_pos $loc(s) s, ps, None, t) in
-      make_pos $loc t
-    }
-  | KW_THM s=ID COLON a=term DEFEQ t=term DOT
-    {
-      let t = P_definition
-                (Terms.Public, true , make_pos $loc(s) s, [], Some(a), t) in
-      make_pos $loc t
-    }
-  | KW_THM s=ID ps=param+ COLON a=term DEFEQ t=term DOT
-    {
-      let t = P_definition
-                (Terms.Public, true , make_pos $loc(s) s, ps, Some(a), t) in
-      make_pos $loc t
+      let p_sym_nam = make_pos $loc(s) s in
+      let p_sym_typ = Some a in
+      let p_sym_trm = Some t in
+      let p_sym_prf = None in
+      let p_sym_def = true in
+      make_pos $loc
+        (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
+                   ;p_sym_def})
     }
   | rs=rule+ DOT {
       make_pos $loc (P_rules(List.map translate_old_rule rs))
@@ -331,10 +369,7 @@ line:
       let q = make_pos $loc (P_query_assert(mf, P_assert_conv(t,u))) in
       make_pos $loc (P_query q)
     }
-  | r=REQUIRE    DOT {
-      do_require (locate $loc) r;
-      make_pos $loc (P_require(false,[r]))
-    }
+  | r=REQUIRE DOT { make_pos $loc (P_require(false,[r])) }
   | EOF {
       raise End_of_file
     }
@@ -347,6 +382,10 @@ param:
   | L_PAR id=ID COLON te=term R_PAR {
       ([Some (make_pos $loc(id) id)], Some(te), false)
     }
+
+modifier:
+  | KW_PRV { make_pos $loc (P_expo(Syntax.Tags.Privat)) }
+  | KW_INJ { make_pos $loc (P_prop(Syntax.Tags.Injec)) }
 
 context_item:
   | x=ID ao=option(COLON a=term { a }) { (make_pos $loc(x) x, ao) }

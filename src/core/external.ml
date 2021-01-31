@@ -4,9 +4,12 @@
     calling a Unix command. This is used, for instance, to run a confluence or
     termination checker. *)
 
-open Extra
-open Timed
+open Lplib.Base
+open Lplib.Extra
+
+open Backbone
 open Console
+open Timed
 
 (** Logging function for external checkers. *)
 let log_xtrn = new_logger 'x' "xtrn" "external tools"

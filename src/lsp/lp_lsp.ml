@@ -10,35 +10,15 @@
 (* Status: Very Experimental                                            *)
 (************************************************************************)
 
+open! Lplib
+open Lplib.Extra
+open Backbone
+
 open Core
 
 module F = Format
 module J = Yojson.Basic
 module U = Yojson.Basic.Util
-
-(* OCaml 4.04 compat *)
-module Hashtbl = struct
-  include Hashtbl
-  let find_opt n d = try Some Hashtbl.(find n d) with | Not_found -> None
-end
-
-module List = struct
-  include List
-  let assoc_opt n d = try Some List.(assoc n d) with | Not_found -> None
-  let find_opt f l = try Some List.(find f l) with | Not_found -> None
-end
-
-module StrMap = struct
-  include Extra.StrMap
-  let find_opt key map =
-    try Some (find key map)
-    with | Not_found -> None
-end
-
-module Option = struct
-  let _iter f x = match x with | None -> () | Some x -> f x
-  let _map f x = match x with | None -> None | Some x -> Some (f x)
-end
 
 let    int_field name dict = U.to_int    List.(assoc name dict)
 let   dict_field name dict = U.to_assoc  List.(assoc name dict)
@@ -46,14 +26,11 @@ let   list_field name dict = U.to_list   List.(assoc name dict)
 let string_field name dict = U.to_string List.(assoc name dict)
 
 (* Conditionals *)
-let option_empty x = match x with | None -> true | Some _ -> false
-let option_cata f x d = match x with | None -> d | Some x -> f x
-let option_default x d = match x with | None -> d | Some x -> x
-
-let oint_field  name dict = option_cata U.to_int List.(assoc_opt name dict) 0
+let oint_field  name dict =
+  Option.map_default U.to_int 0 List.(assoc_opt name dict)
 let odict_field name dict =
-  option_default U.(to_option to_assoc
-                      (option_default List.(assoc_opt name dict) `Null)) []
+  Option.default U.(to_option to_assoc
+                      (Option.default List.(assoc_opt name dict) `Null)) []
 
 module LIO = Lsp_io
 module LSP = Lsp_base
@@ -126,6 +103,7 @@ let do_close _ofmt params =
 let grab_doc params =
   let document = dict_field "textDocument" params in
   let doc_file = string_field "uri" document in
+
   let start_doc, end_doc =
     Hashtbl.(find doc_table doc_file, find completed_table doc_file) in
   doc_file, start_doc, end_doc
@@ -150,7 +128,7 @@ let kind_of_type tm =
   let open Terms in
   let open Timed in
   let is_undef =
-    option_empty !(tm.sym_def) && List.length !(tm.sym_rules) = 0 in
+    Option.empty !(tm.sym_def) && List.length !(tm.sym_rules) = 0 in
   match !(tm.sym_type) with
   | Vari _ ->
     13                         (* Variable *)
@@ -169,9 +147,9 @@ let do_symbols ofmt ~id params =
         (* LIO.log_error "sym"
          ( s.sym_name ^ " | "
          ^ Format.asprintf "%a" pp_term !(s.sym_type)); *)
-        option_cata
+        Option.map_default
           (fun p -> mk_syminfo file
-                      (s.sym_name, s.sym_path, kind_of_type s, p) :: l) p l)
+              (s.sym_name, s.sym_path, kind_of_type s, p) :: l) l p)
       sym [] in
   let msg = LSP.mk_reply ~id ~result:(`List sym) in
   LIO.send_json ofmt msg
@@ -191,39 +169,67 @@ let get_textPosition params =
 let in_range ?loc (line, pos) =
   match loc with
   | None -> false
-  | Some loc ->
-      let { Pos.start_line ; start_col ; end_line ; end_col ; _ } =
-        Lazy.force loc in
+  | Some Pos.{start_line; start_col; end_line; end_col; _} ->
     start_line - 1 < line && line < end_line - 1 ||
     (start_line - 1 = line && start_col <= pos) ||
     (end_line - 1 = line && pos <= end_col)
 
-let get_goals ~doc ~line ~pos =
+let get_node_at_pos doc line pos =
   let open Lp_doc in
-  let node =
-    List.find_opt (fun { ast; _ } ->
-        let loc = Pure.Command.get_pos ast in
-        let res = in_range ?loc (line,pos) in
-        let ls = Format.asprintf "%B l:%d p:%d / %a "
-                   res line pos Pos.print loc in
-        LIO.log_error "get_goals" ("call: "^ls);
-        res
-      ) doc.Lp_doc.nodes in
-  let goalsList = match node with
-    | None -> []
-    | Some n -> n.goals in
-  let goals =
-    match List.find_opt (fun (_, loc) -> in_range ?loc (line,pos)) goalsList
-    with
+  List.find_opt (fun { ast; _ } ->
+      let loc = Pure.Command.get_pos ast in
+      let res = in_range ?loc (line,pos) in
+      let ls = Format.asprintf "%B l:%d p:%d / %a "
+                 res line pos Pos.print loc in
+      LIO.log_error "get_node_at_pos" ("call: "^ls);
+      res
+    ) doc.Lp_doc.nodes
+
+let rec get_goals ~doc ~line ~pos =
+  let node = get_node_at_pos doc line pos in
+  let goals = match node with
     | None -> None
-    | Some (v,_) -> Some v in
-  goals
+    | Some n ->
+        List.find_opt (fun (_, loc) -> in_range ?loc (line,pos)) n.goals in
+  match goals with
+    | None -> begin match node with
+              | None   -> None
+              | Some _ -> get_goals ~doc ~line:(line-1) ~pos:0 end
+    | Some (v,_) -> Some v
+
+let get_logs ~doc ~line ~pos =
+  (* DEBUG LOG START *)
+  LIO.log_error "get_logs"
+    (Printf.sprintf "%s:%d,%d" doc.Lp_doc.uri line pos);
+  let log_to_str (log, posopt) =
+    let pos_str =
+      match posopt with
+      | None -> "None"
+      | Some Pos.{start_line; start_col; _} ->
+          Printf.sprintf "(%d, %d)" start_line start_col
+    in
+    let log_str =
+      let len = String.length log in
+      Printf.sprintf "length: %d | %s" len (String.sub log 0 (min 30 len))in
+    Format.asprintf "element: %s -> %s\n " pos_str log_str
+  in
+  Lsp_io.log_error "get_logs"
+    (List.fold_left (^) "\n" (List.map log_to_str doc.Lp_doc.logs));
+  (* DEBUG LOG END *)
+  let before_cursor (npos : Pos.popt) =
+    match npos with
+    | None -> Lsp_io.log_error "get_logs" "None pos"; true
+    | Some Pos.{start_line; _} -> start_line-1 <= line
+  in
+  List.fold_left_while (fun acc x -> acc^(fst x))
+                  (fun (_, p) -> before_cursor p) "" doc.Lp_doc.logs
 
 let do_goals ofmt ~id params =
   let uri, line, pos = get_docTextPosition params in
   let doc = Hashtbl.find completed_table uri in
   let goals = get_goals ~doc ~line ~pos in
-  let result = LSP.json_of_goals goals in
+  let logs = get_logs ~doc ~line ~pos in
+  let result = LSP.json_of_goals goals ~logs in
   let msg = LSP.mk_reply ~id ~result in
   LIO.send_json ofmt msg
 
@@ -231,68 +237,40 @@ let msg_fail hdr msg =
   LIO.log_error hdr msg;
   failwith msg
 
-(** [get_token line pos] tries to extract the corresponding token from
-   [line] for column [pos] ; this is used in go to definition, type on
-   hover, etc... The function is a bit complex due to the use of
-   Unicode chars in the Lambdapi code, it could surely be improved. *)
-let get_token line pos =
-  let regexp = Str.regexp "[^a-zA-Z0-9_]" in
-  let res_split = Str.full_split regexp line in
-  let count = 0 in
-  let rec iter_tokens count tokens pos =
-    match tokens with
-    | [] -> ""
-    | t::ts -> match t with
-      | Str.Text txt ->
-        let new_count = count + String.length txt in
-        if new_count >= pos
-        then txt
-        else iter_tokens new_count ts pos
-      | Str.Delim s ->
-        if String.equal s "\226"
-        then
-          let sym_table = ["\226\135\146"; "\226\134\146"; "\226\136\128"] in
-          let find_symb ts sym_table =
-            match ts with
-            | [] ->
-              msg_fail "get_token" "unicode symbol not in table"
-            | _::[] ->
-              msg_fail "get_token" "not enough chars"
-            | a::b::tl ->
-              match a,b with
-              | Str.Delim c, Str.Delim d ->
-                if List.mem ("\226"^c^d) sym_table
-                then
-                  let new_count = count + 1 in
-                  iter_tokens new_count tl pos
-                else
-                  let new_count = count + 1 in
-                  iter_tokens new_count ts pos
-              | _, _ ->
-                msg_fail "get_token" "expected Delim in split"
-          in find_symb ts sym_table
-        else
-          let new_count = (count + 1) in
-          iter_tokens new_count ts pos
-  in iter_tokens count res_split pos
+let get_symbol : Range.point ->
+('a * 'b) RangeMap.t -> ('b * Range.t) option
+= fun pos doc ->
 
-let get_symbol text l pos =
-  let lines = String.split_on_char '\n' text in
-  let line = List.nth lines l in
-  get_token line pos
+  let open RangeMap in
+
+  match (find pos doc) with
+  | None -> None
+  | Some(interval, (_, token)) -> Some (token, interval)
+
 
 let do_definition ofmt ~id params =
-  let file, _, doc = grab_doc params in
-  let line, pos = get_textPosition params in
-  let sym_target = get_symbol doc.text line pos in
-  LIO.log_error "definition" sym_target;
+
+  let _, _, doc = grab_doc params in
+  let ln, pos = get_textPosition params in
+
+  (* Lines send by the client start at 0 *)
+  let pt = Range.make_point (ln + 1) pos in
+  let sym_target =
+    match get_symbol pt doc.map with
+    | None -> "No symbol found"
+    | Some(token, _) -> token
+  in
+
+  (*Some printing in the log*)
+  LIO.log_error "token map" (RangeMap.to_string snd doc.map);
+  LIO.log_error "do_definition" sym_target;
 
   let sym = Pure.get_symbols doc.final in
   let map_pp : string =
     Extra.StrMap.bindings sym
     |> List.map (fun (key, (sym,pos)) ->
-           Format.asprintf "{%s} / %s: @[%a@]"
-             key sym.Terms.sym_name Pos.print pos)
+        Format.asprintf "{%s} / %s: @[%a@]"
+          key sym.Terms.sym_name Pos.print pos)
     |> String.concat "\n"
   in
   LIO.log_error "symbol map" map_pp;
@@ -301,38 +279,93 @@ let do_definition ofmt ~id params =
     match StrMap.find_opt sym_target sym with
     | None
     | Some (_, None) -> `Null
-    | Some (_, Some pos) -> mk_definfo file pos
+    | Some (term, Some pos) ->
+      (* A JSON with the path towards the definition of the term
+         and its position is returned
+         /!\ : extension is fixed, only works for .lp files *)
+      mk_definfo Files.(module_to_file Terms.(term.sym_path)
+      ^ src_extension) pos
   in
   let msg = LSP.mk_reply ~id ~result:sym_info in
   LIO.send_json ofmt msg
 
 let hover_symInfo ofmt ~id params =
+
   let _, _, doc = grab_doc params in
-  let line, pos = get_textPosition params in
-  let sym_target = get_symbol doc.text line pos in
+  let ln, pos = get_textPosition params in
+
+  (* Positions sent by the client are one line late *)
+  let pt = Range.make_point (ln + 1) pos in
+  LIO.log_error "searched point" (Range.point_to_string pt);
+
+  (* The hovered token and its start/finish positions are stored *)
+  let sym_target, interval  =
+  match get_symbol pt doc.map with
+    | None ->
+      "No symbol found", (Range.make_interval pt pt)
+    (* VSCode highlights the token properly if the interval is extended to the
+       character next to it. This might be handled differently in other
+       editors in the future, but it is the most practical solution for
+       now. *)
+    | Some(token, range) ->
+      token, (Range.translate range 0 1)
+  in
+
+  (* Some printing in the log *)
+  (* LIO.log_error "token map" (RangeMap.to_string snd doc.map);
+
+  LIO.log_error "hoverSymInfo" sym_target;
+  LIO.log_error "hoverSymInfo" (Range.interval_to_string interval); *)
+
+  (* The information about the tokens is stored *)
   let sym = Pure.get_symbols doc.final in
+
+  (* The start/finish positions are used to hover the full qualified term,
+     not just the token *)
+  let start = Range.interval_start interval
+  and finish = Range.interval_end interval in
+
+  (* FIXME: types and typed conversion should take care of this *)
+  let sl, sc, fl, fc =
+    (Range.line start - 1),
+    (Range.column start - 1),
+    (Range.line finish - 1),
+    (Range.column finish - 1)
+  in
+
+  let s = `Assoc["line", `Int sl; "character", `Int sc] in
+  let f = `Assoc["line", `Int fl; "character", `Int fc] in
+  let range = `Assoc["start", s; "end", f] in
+
   let map_pp : string =
     Extra.StrMap.bindings sym
     |> List.map (fun (key, (sym,pos)) ->
-           Format.asprintf "{%s} / %s: @[%a@]"
-             key sym.Terms.sym_name Pos.print pos)
+        Format.asprintf "{%s} / %s: @[%a@]"
+          key sym.Terms.sym_name Pos.print pos)
     |> String.concat "\n"
   in
   LIO.log_error "symbol map" map_pp;
 
-  let sym_found = let open Timed in let open Terms in
-    match StrMap.find_opt sym_target sym with
-    | None ->
-      msg_fail "hover" "sym not found"
-    | Some (_, None) ->
-      msg_fail "hover" "sym not found"
-    | Some (sym, Some _) ->
-      !(sym.sym_type)
-  in let sym_type : string =
-    Format.asprintf "%a" Print.pp_term sym_found in
-  let result = `Assoc [ "contents", `String sym_type] in
-  let msg = LSP.mk_reply ~id ~result in
-  LIO.send_json ofmt msg
+  try
+    let sym_found =
+      let open Timed in
+      let open Terms in
+      match StrMap.find_opt sym_target sym with
+      | None
+      | Some (_, None) ->
+        msg_fail "hover_SymInfo" "Sym not found"
+      | Some (sym, Some _) ->
+        !(sym.sym_type)
+    in
+    let sym_type = Format.asprintf "%a" Print.pp_term sym_found in
+    let result : J.t =
+      `Assoc [ "contents", `String sym_type; "range", range ] in
+    let msg = LSP.mk_reply ~id ~result in
+    LIO.send_json ofmt msg
+
+  with _ ->
+    let msg = LSP.mk_reply ~id ~result:`Null in
+    LIO.send_json ofmt msg
 
 let protect_dispatch p f x =
   try f x
@@ -416,8 +449,8 @@ let main std log_file =
   LIO.debug_fmt := F.formatter_of_out_channel debug_oc;
 
   (* XXX: Capture better / per sentence. *)
-  let lp_oc = open_out "log-lp.txt" in
-  let lp_fmt = F.formatter_of_out_channel lp_oc in
+  (* let lp_oc = open_out "log-lp.txt" in *)
+  let lp_fmt = F.formatter_of_buffer Lp_doc.lp_logger in
   Console.out_fmt := lp_fmt;
   Console.err_fmt := lp_fmt;
   (* Console.verbose := 4; *)
@@ -426,7 +459,8 @@ let main std log_file =
     let com = LIO.read_request stdin in
     LIO.log_object "read" com;
     process_input oc com;
-    F.pp_print_flush lp_fmt (); flush lp_oc;
+    F.pp_print_flush lp_fmt ();
+    (* flush lp_oc ;*)
     loop ()
   in
   try loop ()
@@ -436,7 +470,7 @@ let main std log_file =
     LIO.log_error "[BT]" bt;
     F.pp_print_flush !LIO.debug_fmt ();
     flush_all ();
-    close_out debug_oc;
-    close_out lp_oc
+    (* close_out lp_oc; *)
+    close_out debug_oc
 
 let default_log_file : string = "/tmp/lambdapi_lsp_log.txt"

@@ -4,9 +4,11 @@
     The signature is not attached to any real lambdapi file and is henceforth
     qualified to be a "ghost" signature. *)
 
+open Backbone
 open Timed
 open Files
 open Terms
+open Parsing
 open Syntax
 
 (** Path of the module. *)
@@ -28,9 +30,11 @@ let sign : Sign.t =
     made of only one unification. *)
 let equiv : sym =
   let path = List.map (fun s -> (s, false)) path in
-  let bo = ("≡", Assoc_none, 1.1, Pos.none (path, "#equiv")) in
-  let sym = Sign.add_symbol sign Public Defin (Pos.none "#equiv") Kind [] in
-  Sign.add_binop sign "≡" (sym, bo);
+  let bo = ("≡", Pratter.Neither, 1.1, Pos.none (path, "#equiv")) in
+  let sym =
+    Sign.add_symbol sign Public Defin Eager (Pos.none "#equiv") Kind []
+  in
+  Sign.add_binop sign sym bo;
   sym
 
 (** Cons-like symbol for equivalences. The right-hand side of a unification
@@ -39,9 +43,11 @@ let equiv : sym =
     [t ≡ u; v ≡ w; ...]. *)
 let cons : sym =
   let path = List.map (fun s -> (s, false)) path in
-  let bo = (";", Assoc_right, 1.0, Pos.none (path, "#cons")) in
-  let sym = Sign.add_symbol sign Public Defin (Pos.none "#cons") Kind [] in
-  Sign.add_binop sign ";" (sym, bo);
+  let bo = (";", Pratter.Right, 1.0, Pos.none (path, "#cons")) in
+  let sym =
+    Sign.add_symbol sign Public Defin Eager (Pos.none "#cons") Kind []
+  in
+  Sign.add_binop sign sym bo;
   sym
 
 (** [unpack eqs] transforms a term of the form
@@ -72,3 +78,6 @@ let rec p_unpack : p_term -> (p_term * p_term) list = fun eqs ->
       else if id s = "#equiv" then [(v, w)] else
       assert false (* Ill-formed term. *)
   | _                               -> assert false (* Ill-formed term. *)
+
+(** [is_ghost s] is true iff [s] is a symbol of the ghost signature. *)
+let is_ghost : sym -> bool = fun s -> s == equiv || s == cons

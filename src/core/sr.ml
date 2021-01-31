@@ -1,7 +1,9 @@
 (** Type-checking and inference. *)
 
-open Extra
+open! Lplib
+
 open Timed
+open Backbone
 open Console
 open Terms
 open Print
@@ -26,7 +28,7 @@ let build_meta_type : int -> term = fun k ->
   done;
   (* We create the “Ai” terms and the “Mi” metavariables. *)
   let fn i =
-    let m = fresh_meta (Bindlib.unbox ty_m.(i)) i in
+    let m = Meta.fresh (Bindlib.unbox ty_m.(i)) i in
     _Meta m (Array.sub ts 0 i)
   in
   let a = Array.init (k+1) fn in
@@ -80,7 +82,6 @@ let symb_to_tenv
     : Scope.pre_rule Pos.loc -> sym list -> index_tbl -> term -> tbox =
   fun {elt={pr_vars=vars;pr_arities=arities;_};pos} syms htbl t ->
   let rec symb_to_tenv t =
-    log_subj "symb_to_tenv %a" pp_term t;
     let (h, ts) = Basics.get_args t in
     let ts = List.map symb_to_tenv ts in
     let (h, ts) =
@@ -119,7 +120,7 @@ let symb_to_tenv
       | Wild        -> assert false (* Cannot appear in RHS. *)
       | TRef(_)     -> assert false (* Cannot appear in RHS. *)
     in
-    List.fold_left _Appl h ts
+    _Appl_list h ts
   in
   symb_to_tenv t
 
@@ -128,43 +129,43 @@ let symb_to_tenv
    [Fatal] is raised in case of error. *)
 let check_rule : Scope.pre_rule Pos.loc -> rule = fun ({pos; elt} as pr) ->
   let Scope.{pr_sym = s ; pr_lhs = lhs ; pr_vars = vars
-            ; pr_rhs = rhs_vars; pr_arities = arities
-            ; pr_xvars_nb = xvars ; _} = elt
+            ; pr_rhs ; pr_arities = arities ; pr_xvars_nb ; _} = elt
   in
   (* Check that the variables of the RHS are in the LHS. *)
-  if xvars <> 0 then
+  if pr_xvars_nb <> 0 then
     begin
-      let xvars = Array.drop (Array.length vars - xvars) vars in
+      let xvars = Array.drop (Array.length vars - pr_xvars_nb) vars in
       fatal pos "Unknown pattern variables [%a]"
         (Array.pp Print.pp_var ",") xvars
     end;
   let arity = List.length lhs in
   if !log_enabled then
     begin
-      (* The unboxing here could be harmful since it leads to [rhs_vars] being
+      (* The unboxing here could be harmful since it leads to [pr_rhs] being
          unboxed twice. However things should be fine here since the result is
          only used for printing. *)
-      let rhs = Bindlib.(unbox (bind_mvar vars rhs_vars)) in
+      let rhs = Bindlib.(unbox (bind_mvar vars pr_rhs)) in
       let naive_rule = {lhs; rhs; arity; arities; vars; xvars_nb = 0} in
-      log_subj "check rule [%a]" pp_rule (s, naive_rule);
+      log_subj (mag "check %a") pp_rule (s, naive_rule);
     end;
   (* Replace [Patt] nodes of LHS with corresponding elements of [vars]. *)
   let lhs_vars =
     let args = List.map (patt_to_tenv vars) lhs in
-    List.fold_left _Appl (_Symb s) args
+    _Appl_symb s args
   in
-  (* Create metavariables that will stand for the variables of [vars]. *)
+  (* Create metavariables that will stand for the variables of [vars].
+     These metavariables are prefixed by "$" so that we recognize them. *)
   let var_names = Array.map (fun x -> "$" ^ Bindlib.name_of x) vars in
   let metas =
     let fn i name =
       let arity = arities.(i) in
-      fresh_meta ~name (build_meta_type arity) arity
+      Meta.fresh ~name (build_meta_type arity) arity
     in
     Array.mapi fn var_names
   in
   (* Substitute them in the LHS and in the RHS. *)
   let (lhs_typing, rhs_typing) =
-    let lhs_rhs = Bindlib.box_pair lhs_vars rhs_vars in
+    let lhs_rhs = Bindlib.box_pair lhs_vars pr_rhs in
     let b = Bindlib.(unbox (bind_mvar vars lhs_rhs)) in
     let meta_to_tenv m =
       let xs = Basics.fresh_vars m.meta_arity in
@@ -176,19 +177,26 @@ let check_rule : Scope.pre_rule Pos.loc -> rule = fun ({pos; elt} as pr) ->
   in
   if !log_enabled then
     begin
-      log_subj (mag "transformed LHS is [%a]") pp_term lhs_typing;
-      log_subj (mag "transformed RHS is [%a]") pp_term rhs_typing
+      log_subj "replace pattern variables by metavariables";
+      log_subj "transformed LHS: %a" pp_term lhs_typing;
+      log_subj "transformed RHS: %a" pp_term rhs_typing
     end;
   (* Infer the typing constraints of the LHS. *)
-  match Typing.infer_constr [] lhs_typing with
-  | None                      -> fatal pos "The LHS is not typable."
-  | Some(ty_lhs, lhs_constrs) ->
+  match Infer.infer_noexn [] [] lhs_typing with
+  | None -> fatal pos "The LHS is not typable."
+  | Some(ty_lhs, to_solve) ->
+  (* Try to simplify constraints. *)
+  let type_check = false in (* Don't check typing when instantiating metas. *)
+  match Unif.(solve_noexn ~type_check {empty_problem with to_solve}) with
+  | None -> fatal pos "The LHS is not typable."
+  | Some lhs_constrs ->
   if !log_enabled then
     begin
-      log_subj (gre "LHS has type %a") pp_term ty_lhs;
-      List.iter (log_subj "  if %a" pp_constr) lhs_constrs;
-      log_subj (mag "LHS is now [%a]") pp_term lhs_typing;
-      log_subj (mag "RHS is now [%a]") pp_term rhs_typing
+      log_subj (gre "LHS has type: %a") pp_term ty_lhs;
+      List.iter (log_subj (gre "  if %a") pp_constr) lhs_constrs;
+      log_subj "LHS is now: %a" pp_term lhs_typing;
+      log_subj "RHS is now: %a" pp_term rhs_typing;
+      log_subj "check that the RHS has the same type as the LHS"
     end;
   (* We build a map allowing to find a variable index from its name. *)
   let htbl : index_tbl = Hashtbl.create (Array.length vars) in
@@ -213,7 +221,7 @@ let check_rule : Scope.pre_rule Pos.loc -> rule = fun ({pos; elt} as pr) ->
             | Some(n) -> n
             | None    -> string_of_int m.meta_key
           in
-          let s = Sign.new_sym sym_name !(m.meta_type) in
+          let s = Sign.create_sym Privat Defin sym_name !(m.meta_type) [] in
           Stdlib.(symbols := s :: !symbols);
           (* Build a definition for [m]. *)
           let xs = Basics.fresh_vars m.meta_arity in
@@ -224,28 +232,25 @@ let check_rule : Scope.pre_rule Pos.loc -> rule = fun ({pos; elt} as pr) ->
     Array.iter instantiate metas; Stdlib.(!symbols)
   in
   (* Compute the constraints for the RHS to have the same type as the LHS. *)
-  let to_solve = Infer.check [] rhs_typing ty_lhs in
+  match Infer.check_noexn [] [] rhs_typing ty_lhs with
+  | None -> fatal pos "[%a] is not typable." pp_term rhs_typing
+  | Some to_solve ->
   if !log_enabled then
     begin
-      log_subj (gre "RHS has type %a") pp_term ty_lhs;
-      List.iter (log_subj "  if %a" pp_constr) to_solve;
-      log_subj (mag "LHS is now [%a]") pp_term lhs_typing;
-      log_subj (mag "RHS is now [%a]") pp_term rhs_typing
+      log_subj "LHS is now: %a" pp_term lhs_typing;
+      log_subj "RHS is now: %a" pp_term rhs_typing
     end;
   (* TODO we should complete the constraints into a set of rewriting rule on
      the function symbols of [symbols]. *)
   (* Solving the typing constraints of the RHS. *)
-  match Unif.(solve {empty_problem with to_solve}) with
+  match Unif.(solve_noexn {empty_problem with to_solve}) with
   | None     -> fatal pos "The rewriting rule does not preserve typing."
   | Some(cs) ->
   let is_constr c =
-    let eq_comm (_,t1,u1) (_,t2,u2) =
-      (* Contexts ignored: [Infer.check] is called with an empty context and
-         neither [Infer.check] nor [Unif.solve] generate contexts with defined
-         variables. *)
-      (Eval.eq_modulo [] t1 t2 && Eval.eq_modulo [] u1 u2) ||
-      (Eval.eq_modulo [] t1 u2 && Eval.eq_modulo [] t2 u1)
-    in
+    (* Contexts ignored: [Infer.check] is called with an empty context and
+       neither [Infer.check] nor [Unif.solve] generate contexts with defined
+       variables. *)
+    let eq_comm (_,t1,u1) (_,t2,u2) = Eval.eq_constr ([],t1,u1) ([],t2,u2) in
     List.exists (eq_comm c) lhs_constrs
   in
   let cs = List.filter (fun c -> not (is_constr c)) cs in
@@ -256,8 +261,6 @@ let check_rule : Scope.pre_rule Pos.loc -> rule = fun ({pos; elt} as pr) ->
     end;
   (* Replace metavariable symbols by term_env variables, and bind them. *)
   let rhs = symb_to_tenv pr symbols htbl rhs_typing in
-  if !log_enabled then
-    log_subj "final RHS is [%a]" pp_term (Bindlib.unbox rhs);
   (* TODO optimisation for evaluation: environment minimisation. *)
   (* Construct the rule. *)
   let rhs = Bindlib.unbox (Bindlib.bind_mvar vars rhs) in

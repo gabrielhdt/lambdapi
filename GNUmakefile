@@ -1,4 +1,5 @@
-VIMDIR   = $(HOME)/.vim
+VIMDIR = $(HOME)/.vim
+EMACS  = $(shell which emacs)
 
 #### Compilation (binary, library and documentation) #########################
 
@@ -15,41 +16,21 @@ doc:
 
 #### Unit tests and sanity check #############################################
 
-LAMBDAPI     = dune exec -- lambdapi check --lib-root lib
+LAMBDAPI     = dune exec -- lambdapi check
 OK_TESTFILES = $(sort $(wildcard tests/OK/*.dk tests/OK/*.lp))
 KO_TESTFILES = $(sort $(wildcard tests/KO/*.dk tests/KO/*.lp))
 
 .PHONY: tests
 tests: bin
-	@printf "## OK tests ##\n"
-	@for file in $(OK_TESTFILES) ; do \
-		$(LAMBDAPI) --verbose 0 $$file 2> /dev/null \
-		&& printf "\033[32mOK\033[0m $$file\n" \
-	  || { printf "\033[31mKO\033[0m $$file\n" \
-		&& $(LAMBDAPI) --verbose 0 $$file ; } ; \
-	done || true
-	@printf "## KO tests ##\n"
-	@for file in $(KO_TESTFILES) ; do \
-		$(LAMBDAPI) --verbose 0 $$file 2> /dev/null \
-		&& printf "\033[31mOK\033[0m $$file\n" \
-		|| printf "\033[32mKO\033[0m $$file\n" ; \
-	done || true
+	@dune test
+	@printf "## Decision tree tests ##\n"
+	@dune exec -- tests/dtrees.sh
 
 .PHONY: real_tests
 real_tests: bin
-	@printf "## OK tests ##\n"
-	@for file in $(OK_TESTFILES) ; do \
-		$(LAMBDAPI) --verbose 0 $$file 2> /dev/null \
-		&& printf "\033[32mOK\033[0m $$file\n" \
-	  || { printf "\033[31mKO\033[0m $$file\n" \
-		&& $(LAMBDAPI) --verbose 0 $$file ; exit 1 ; } ; \
-	done
-	@printf "## KO tests ##\n"
-	@for file in $(KO_TESTFILES) ; do \
-		$(LAMBDAPI) --verbose 0 $$file 2> /dev/null \
-		&& { printf "\033[31mOK\033[0m $$file\n" ; exit 1 ; } \
-		|| printf "\033[32mKO\033[0m $$file\n" ; \
-	done
+	@dune test
+	@printf "## Decision tree tests ##\n"
+	@dune exec -- tests/dtrees.sh
 
 .PHONY: sanity_check
 sanity_check: tools/sanity_check.sh
@@ -144,6 +125,16 @@ else
 	install -m 644 editors/vim/ftdetect/dedukti.vim  $(VIMDIR)/ftdetect
 	install -m 644 editors/vim/ftdetect/lambdapi.vim $(VIMDIR)/ftdetect
 	@printf "\e[36mVim mode installed.\e[39m\n"
+endif
+
+.PHONY: install_emacs
+install_emacs:
+ifeq ($(EMACS),)
+	@printf "\e[36mNo 'emacs' binary available in path and EMACS variable \
+is not set, \nEmacs mode won't be installed.\e[39m\n"
+else
+	@$(MAKE) -C editors/emacs/ install
+	@printf "\e[36mEmacs mode installed.\e[39m\n"
 endif
 
 opam-release:

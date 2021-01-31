@@ -1,7 +1,10 @@
 (** Registering and checking builtin symbols. *)
 
-open Extra
+open Lplib.Base
+open Lplib.Extra
+
 open Timed
+open Backbone
 open Terms
 open Console
 open Pos
