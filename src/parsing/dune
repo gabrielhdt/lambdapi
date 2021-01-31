@@ -3,7 +3,7 @@
  (public_name lambdapi.parsing)
  (modules :standard)
  (preprocess (pps sedlex.ppx))
- (libraries pratter sedlex sedlex.ppx lplib file_management))
+ (libraries pratter sedlex sedlex.ppx file_management))
 
 (menhir (flags --explain --external-tokens LpLexer) (modules lpParser))
 
