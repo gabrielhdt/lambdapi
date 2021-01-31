@@ -11,7 +11,6 @@ open Lplib.Base
 open Backbone
 open Console
 open Pos
-open Parsing
 open Syntax
 
 let string = Format.pp_print_string
@@ -40,10 +39,10 @@ let qident : qident pp = fun ff {elt=(path,id); pos} ->
 
 let modifier : p_modifier pp = fun ff {elt; _} ->
   match elt with
-  | P_expo(e) -> Print.pp_expo ff e
-  | P_mstrat(s) -> Print.pp_match_strat ff s
-  | P_prop(p) -> Print.pp_prop ff p
-  | P_opaq -> string ff "opaque "
+  | P_expo(e)   -> Tags.pp_expo ff e
+  | P_mstrat(s) -> Tags.pp_match_strat ff s
+  | P_prop(p)   -> Tags.pp_prop ff p
+  | P_opaq      -> string ff "opaque "
 
 let rec term : p_term pp = fun ff t ->
   let out fmt = Format.fprintf ff fmt in
@@ -124,13 +123,28 @@ let inductive : string -> p_inductive pp = fun kw ff {elt=(id,a,cs);_} ->
 let equiv : (p_term * p_term) pp = fun ff (l, r) ->
   Format.fprintf ff "%a ≡ %a" term l term r
 
+(** [p_unpack eqs] is [unpack eqs] on syntax-level equivalences [eqs]. *)
+let rec p_unpack : p_term -> (p_term * p_term) list = fun eqs ->
+  let id s = snd s.Pos.elt in
+  match Syntax.p_get_args eqs with
+  | ({elt=P_Iden(s, _); _}, [v; w]) ->
+      if id s = "#cons" then
+        match Syntax.p_get_args v with
+        | ({elt=P_Iden(e, _); _}, [t; u]) when id e = "#equiv" ->
+            (t, u) :: p_unpack w
+        | _                                                         ->
+            assert false (* Ill-formed term. *)
+      else if id s = "#equiv" then [(v, w)] else
+      assert false (* Ill-formed term. *)
+  | _                               -> assert false (* Ill-formed term. *)
+  
 let unif_rule : p_rule pp = fun ff {elt=(lhs,rhs);_} ->
   let lhs =
     match Syntax.p_get_args lhs with
     | (_, [t; u]) -> (t, u)
     | _           -> assert false
   in
-  let eqs = Unif_rule.p_unpack rhs in
+  let eqs = p_unpack rhs in
   Format.fprintf ff "%a ↪ %a" equiv lhs (List.pp equiv ", ") eqs
 
 let proof_end : p_proof_end pp = fun ff {elt;_} ->
