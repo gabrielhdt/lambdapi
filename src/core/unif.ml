@@ -514,7 +514,7 @@ let eq_noexn : ?type_check:bool -> ctxt -> term -> term -> bool =
 (** A type inference algorithm with unification. *)
 module Infer =
   Refiner.Make(struct
-    let lookup _ _ _ _ = None
+    let lookup _ _ _ = None
     let solve pb = solve_noexn pb
   end)
 

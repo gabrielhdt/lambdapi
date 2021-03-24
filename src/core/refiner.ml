@@ -10,11 +10,9 @@ let log = log.logger
 (** Type for unification constraints solvers. *)
 type solver = problem -> constr list option
 
-type coercer = ctxt -> term -> term -> term -> term
-
 (** Module that provide a lookup function to the refiner. *)
 module type LOOKUP = sig
-  val lookup : coercer -> ctxt -> term -> term -> (term * term * term) option
+  val lookup : ctxt -> term -> term -> (term * term * term) option
   (** [lookup cc ctx a b] returns a 3-uple [Some(t_c, dom, arg)] where [t_c]
       is a term of type [r] with [r ≈ b] (where [≈] is not specified), and
       [t_c] is the coercion of a term of type [a] to [b]. The term [t_c] is of
@@ -102,15 +100,21 @@ functor
      if Eval.eq_modulo ctx a b then t else
      let eqs = List.rev Stdlib.(!constraints) in
      let pb = {empty_problem with to_solve = (ctx, a, b) :: eqs} in
+     let pre_unif = Time.save () in
      match L.solve pb with
-     | Some [] -> t
+     | Some [] -> Stdlib.(constraints := []); t
      | None | Some _ ->
-     match L.lookup coerce ctx a b with
+     Time.restore pre_unif;
+     match L.lookup ctx a b with
      | Some (t_c, t_c_ty, arg) ->
          if !(Debug.log_enabled) then
            log (Extra.gre "Coerced \"%a\" to \"%a\"") Print.pp_term t
              Print.pp_term t_c;
-         unif ctx arg t; unif ctx b t_c_ty; t_c
+         unif ctx arg t;
+         ( match L.solve {empty_problem with to_solve = Stdlib.(!constraints)}
+           with Some eqs -> Stdlib.(constraints := eqs)
+              | None -> raise NotTypable );
+         coerce ctx t_c t_c_ty b
      | None ->
          (if !Debug.log_enabled then log (Extra.red "Failed coercion"));
          unif ctx a b; t
@@ -307,7 +311,7 @@ functor
 
 (** A refiner without coercion generator nor unification. *)
 module Bare =
-  Make(struct let lookup _ _ _ _ = None let solve _ = None end)
+  Make(struct let lookup _ _ _ = None let solve _ = None end)
 
 (** A reference to a refiner that can modified by other modules . *)
 let default : (module S) Stdlib.ref = Stdlib.ref (module Bare: S)
