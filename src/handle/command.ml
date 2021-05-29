@@ -408,10 +408,14 @@ let get_proof_data : compiler -> sig_state -> p_command ->
       let (t, a) =
         match a with
         | Some a ->
-            (* Refine term [t] if provided *)
-            let t = Option.map (fun t -> fst (Query.infer p tc [] t)) t in
-            (* and check that the given type is well sorted. *)
-            (t, fst (Query.check_sort p tc [] a))
+            (* Verify that [a] can be typed by a sort. *)
+            let (a, _) = Query.check_sort p tc [] a in
+            (* Refine [t] (instantiate placeholders &c.) but don't fail. *)
+            let t =
+              let module I = (val tc) in
+              Option.bind (fun {elt;_} -> I.check_noexn p [] elt a) t
+            in
+            (t, a)
         | None -> (* If no type is given, infer it from the definition. *)
             match t with
             | None -> assert false
