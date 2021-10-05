@@ -6,15 +6,6 @@ open Core
 open Term
 open Lplib
 
-(** [check cion] runs sanity checks on coercion [cion]. In particular that the
-    definition has the mentioned type. *)
-let check : (module Infer.S) -> Sign.coercion -> unit =
-  fun (module Infer) {defn_ty; _} ->
-  ignore (Infer.check_sort [] (Pos.none defn_ty))
-  (* TODO: *)
-  (* Substitute sub-coercions by fresh variables of the appropriate type. *)
-  (* Infer check *)
-
 (** [handle ss name defn defn_ty source arity requirements] parses and scopes
     the coercion defined by term [defn] of type [defn_ty] coercing on its
     [source]th argument, with a target type of arity [arity]. It requires to
@@ -49,6 +40,6 @@ let handle : Sig_state.t -> p_ident -> p_term -> p_term -> int -> int ->
   in
   let prerequisites = List.map process_req requirements |> Array.of_list in
   let cion = Sign.coercion name.elt prerequisites defn defn_ty source arity in
-  check (Unif.typechecker ss.coercions) cion;
+  let defn_ty, defn = Tool.Coercion_check.check (Unif.typechecker ss.coercions) cion in
   Console.out 3 (Extra.red "(coercion) %a@\n") Print.pp_term defn_ty;
-  Sig_state.add_coercion ss cion
+  Sig_state.add_coercion ss {cion with defn_ty; defn}

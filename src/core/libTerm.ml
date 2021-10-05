@@ -205,6 +205,32 @@ let rec metafy : ctxt -> term -> term = fun ctx t ->
   | Meta (_, ts) as t->
       Array.iteri (fun i tsi -> ts.(i) <- metafy ctx tsi) ts; t
 
+(** [meta2ph t] replaces metavariables of [t] by placeholders. *)
+let rec meta2ph : term -> term = fun t ->
+  let bder cons a b =
+    let (x, b) = Bindlib.unbind b
+    and a = meta2ph a in
+    let b = Bindlib.(meta2ph b |> lift |> bind_var x |> unbox) in
+    cons (a, b)
+  in
+  match unfold t with
+  | Wild | TEnv _ | Patt _ -> assert false
+  | Kind | Type | Vari _ | Plac _ | TRef _ | Symb _ as t -> t
+  (* TRef must be TRef None, otherwise it's unfolded *)
+  | LLet(a, t, u) ->
+      let a = meta2ph a
+      and t = meta2ph t
+      and (x, u) = Bindlib.unbind u in
+      let u = Bindlib.(meta2ph u |> lift |> bind_var x |> unbox) in
+      mk_LLet (a, t, u)
+  | Abst(a, b) -> bder mk_Abst a b
+  | Prod(a, b) -> bder mk_Prod a b
+  | Appl(t,u) -> mk_Appl(meta2ph t, meta2ph u)
+  | Meta(m,_) ->
+      ( match unfold !(m.meta_type) with
+        | Type -> mk_Plac true None
+        | _ -> mk_Plac false None )
+
 (** [distinct_vars ctx ts] checks that the terms [ts] are distinct
    variables. If so, the variables are returned. *)
 let distinct_vars : ctxt -> term array -> tvar array option = fun ctx ts ->

@@ -231,11 +231,39 @@ let get_proof_data : compiler -> sig_state -> p_command ->
       (ss, None, None)
 
   | P_coercion{elt; _} ->
-      let ss =
-        Coercion.handle ss elt.p_coer_id elt.p_coer_def elt.p_coer_typ
-          elt.p_coer_src elt.p_coer_ari elt.p_coer_req
+      let {p_coer_id=name; p_coer_def=defn; p_coer_typ=defn_ty; p_coer_req=requirements;
+           p_coer_src=source; p_coer_ari=arity; _} = elt in
+      let scope_term ?(env=[]) ss = Scope.scope_term true ss env in
+      let defn, reqs = Scope.scope_coercion ss [] defn in
+      let defn_ty = scope_term ss defn_ty in
+      let process_req (id, ty) : Sign.prereq =
+        match ty.elt with
+          | P_Arro(a, b) ->
+              let (name, env, coer) =
+                List.find (fun (n, _, _) -> n.elt = id.elt)
+                  (Array.to_list reqs)
+              in
+              (* We use the context (or environment) [env] of the definition to
+                 scope the types.  *)
+              let ty_src =
+                scope_term ~env ss a |> lift |>
+                Bindlib.bind_mvar (Env.vars env) |> Bindlib.unbox in
+              let ty_tgt =
+                scope_term ~env ss b |> lift |>
+                Bindlib.bind_mvar (Env.vars env) |> Bindlib.unbox
+              in
+              Sign.prereq name coer ty_src ty_tgt
+          | _ ->
+              Error.fatal ty.pos "Ill-formed requisite type:@ \
+                                  @[%a@ is not an arrow type@]"
+                Pretty.term ty
       in
-      ss, None, None
+      let prerequisites = List.map process_req requirements |> Array.of_list in
+      let cion = Sign.coercion name.elt prerequisites defn defn_ty source arity in
+      let defn_ty, defn = Tool.Coercion_check.check (Unif.typechecker ss.coercions) cion in
+      Console.out 3 (Extra.red "(coercion) %a@\n") Print.pp_term defn_ty;
+      (Sig_state.add_coercion ss {cion with defn_ty; defn}, None, None)
+
   | P_inductive(ms, params, p_ind_list) ->
       (* Check modifiers. *)
       let (prop, expo, mstrat) = handle_modifiers ms in
