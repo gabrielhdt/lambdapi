@@ -293,7 +293,19 @@ let handle : Sig_state.t -> bool -> proof_state -> p_tactic -> proof_state =
       tac_refine tc pos ps gt gs (Rewrite.rewrite ss pos gt l2r pat (scope eq))
   | P_tac_sym -> tac_refine tc pos ps gt gs (Rewrite.symmetry ss pos gt)
   | P_tac_why3 cfg ->
-      tac_refine tc pos ps gt gs (Why3_tactic.handle ss pos cfg gt)
+      let arity = count_products (Env.to_ctxt env) gt.goal_type in 
+      let assume n =
+        if n <= 0 then ps else
+        let idopt = Some (Pos.none "y") in
+        let rec mk_idopts acc k =
+          if k <= 0 then acc else mk_idopts (idopt::acc) (k-1) in
+        let t = P.abst_list (mk_idopts [] n) P.wild in
+        tac_refine (module Infer) pos ps gt gs (scope t) 
+      in
+      (match (assume arity).proof_goals with
+      | Typ gt::gs ->
+          tac_refine tc pos ps gt gs (Why3_tactic.handle ss pos cfg gt)
+      | _ -> assert false)
 
 (** [handle ss prv ps tac] applies tactic [tac] in the proof state [ps] and
    returns the new proof state. *)
