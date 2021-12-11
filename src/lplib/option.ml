@@ -38,3 +38,9 @@ let eq : 'a eq -> 'a option eq = fun eq_elt o1 o2 ->
 
 let pp : 'a pp -> 'a option pp = fun pp_elt ppf o ->
   match o with None -> () | Some e -> pp_elt ppf e
+
+module Binding = struct
+  let ( let* ) : 'a t -> ('a -> 'b t) -> 'b t = fun o f -> 
+    match o with None -> None | Some x -> f x
+  let return x = Some x
+end

@@ -103,6 +103,7 @@ end;
 
 builtin "P"     ≔ P;
 builtin "T"     ≔ T;
+builtin "Set"   ≔ U;
 builtin "eq"    ≔ =;
 builtin "eqind" ≔ eqind;
 builtin "refl"  ≔ refl;
@@ -113,3 +114,7 @@ builtin "imp"   ≔ imp;
 builtin "and"   ≔ {|and|};
 builtin "or"    ≔ or;
 builtin "not"   ≔ not;
+
+constant symbol ex: Π (a : U), (T a → Prop) → Prop;
+builtin "ex" ≔ ex; 
+builtin "all" ≔ all;
