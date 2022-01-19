@@ -151,10 +151,9 @@ let string = [%sedlex.regexp? '"', Star (Compl '"'), '"']
    Finally, identifiers must not be empty, so that we can use the empty string
    for the path of ghost signatures. *)
 
-(** Unqualified regular identifiers are any non-empty sequence of characters
-   not among: *)
-let forbidden_letter = [%sedlex.regexp? Chars " ,;\r\t\n(){}[]:.`\"@$|/"]
-let regid = [%sedlex.regexp? '/' | '*' | Plus (Compl forbidden_letter)]
+
+let ident = [%sedlex.regexp? xid_start, Star (xid_continue | Chars "'")]
+let regid = [%sedlex.regexp? ident | Plus math]
 
 let is_regid : string -> bool = fun s ->
   let lb = Utf8.from_string s in
