@@ -1,6 +1,15 @@
 Lambdapi, a proof assistant based on the λΠ-calculus modulo rewriting [![Gitter][gitter-badge]][gitter-link] [![Matrix][matrix-badge]][matrix-link]
 =====================================================================
 
+This branch
+===========
+
+This branch implements several facilities to typcheck PVS exports. It implements
+a type checker with a refiner, a coercion insertion mechanism (based on
+unification), and the tactic why3 is extended to handle quantifiers.
+
+The syntax has also been updated to be on par with lambdapi2.0.
+
 [User Manual](https://lambdapi.readthedocs.io)
 -------------
 
