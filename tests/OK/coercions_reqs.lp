@@ -14,7 +14,7 @@ coercion "nat2int" (n: El nat) ⊢ nat2int n : El int on 1;
 
 // Coerces tuples provided that we can coerce its elements
 coercion "tup"
-  (a0 b0 a1 b1: Set) (t: El (σ a0 b0)) ⊢ cons a1 b1 $c[car a0 b0 t] $d[cdr a0 b0 t] : El (σ a1 b1)
+  (a0 b0 a1 b1: Set) (t: El (σ a0 b0)) ⊢ cons a1 b1 $c.[car a0 b0 t] $d.[cdr a0 b0 t] : El (σ a1 b1)
   on 5
 with c : El a0 → El a1
 with d : El b0 → El b1;

@@ -83,6 +83,7 @@ type token =
   | BACKQUOTE
   | COMMA
   | COLON
+  | DOT
   | EQUIV
   | HOOK_ARROW
   | LAMBDA
@@ -100,7 +101,6 @@ type token =
 
   (* identifiers *)
   | UID of string
-  | UID_META of Syntax.meta_ident
   | UID_PAT of string
   | QID of Path.t
   | ID_EXPL of Path.t
@@ -363,6 +363,7 @@ let lexer buf =
   | 0x2192 (* → *) -> ARROW
   | '`' -> BACKQUOTE
   | ',' -> COMMA
+  | '.' -> DOT
   | ':' -> COLON
   | 0x2261 (* ≡ *) -> EQUIV
   | 0x21aa (* ↪ *) -> HOOK_ARROW
@@ -381,8 +382,6 @@ let lexer buf =
 
   (* identifiers *)
 
-  | '?', nat -> UID_META(Syntax.Numb(int_of_string(tail buf)))
-  | '?', uid -> UID_META(Syntax.Name(uid_of_string(tail buf)))
   | '$', uid -> UID_PAT(uid_of_string(tail buf))
 
   | '@', uid -> ID_EXPL[uid_of_string(tail buf)]

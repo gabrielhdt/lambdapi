@@ -1,4 +1,4 @@
-require tests.OK.{|262_parsing|} as D;
+require tests.OK.[|262_parsing|] as D;
 
 symbol g : D.A → D.A;
 

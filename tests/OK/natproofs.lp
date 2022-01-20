@@ -39,7 +39,7 @@ end;
 opaque symbol add0r n : P (n + 0 = n)
 ≔ begin
   // FIXME try to infer the predicate
-  refine nat_ind (λ n, n + 0 = n) ?CZ ?CS;
+  refine nat_ind (λ n, n + 0 = n) _ _;
   // Case Z
   simplify;
   reflexivity;
@@ -53,7 +53,7 @@ end;
 opaque symbol add_succ_r n m : P (n + (s m) = s (n + m))
 ≔ begin
   assume n m;
-  refine nat_ind (λ n, n + (s m) = s (n + m)) ?case_0 ?case_s n;
+  refine nat_ind (λ n, n + (s m) = s (n + m)) _ _ n;
   // Case Z
   simplify;
   refine refl nat (s m);
@@ -70,7 +70,7 @@ opaque symbol addcomm n m : P (n + m = m + n)
 ≔ begin
   assume n m;
   // FIXME try to infer nat
-  refine nat_ind (λ n, n + m = m + n) ?case_0 ?case_s n;
+  refine nat_ind (λ n, n + m = m + n) _ _ n;
   // Case Z
   simplify;
   refine eq_sym _ (m + z) m (add0r m); // TODO add a symmetry tactic
@@ -97,7 +97,7 @@ end;
 opaque symbol rewriteTest1 a b : P (a + b = b + a)
 ≔ begin
   assume a b;
-  rewrite [_ + b] addcomm;
+  rewrite .[_ + b] addcomm;
   refine refl nat (b + a);
 end;
 
@@ -105,7 +105,7 @@ end;
 opaque symbol rewriteTest2 a b : P (a + b + b = b + a + b)
 ≔ begin
   assume a b;
-  rewrite [x in x + b] addcomm;
+  rewrite .[x in x + b] addcomm;
   refine refl nat (b + a + b);
 end;
 
@@ -114,7 +114,7 @@ opaque symbol rewriteTest3 a b :
   P (((a + b) + b) + ((a + b) + b) = ((b + a) + b) + ((b + a) + b))
 ≔ begin
   assume a b;
-  rewrite [x in (x + b)] addcomm;
+  rewrite .[x in (x + b)] addcomm;
   refine refl nat (((b + a) + b) + ((b + a) + b));
 end;
 
@@ -123,7 +123,7 @@ opaque symbol rewriteTest4 a b :
   P (((a + b) + (a + b)) + a = ((b + a) + (a + b)) + a)
 ≔ begin
   assume a b;
-  rewrite [x in (x + (a + b))] addcomm;
+  rewrite .[x in (x + (a + b))] addcomm;
   refine refl nat (((b + a) + (a + b)) + a);
 end;
 
@@ -131,7 +131,7 @@ end;
 opaque symbol rewriteTest5 a b : P ((a + b) + (a + b) = (b + a) + (b + a))
 ≔ begin
   assume a b;
-  rewrite [x in x + x] addcomm;
+  rewrite .[x in x + x] addcomm;
   refine refl nat ((b + a) + (b + a));
 end;
 
@@ -139,7 +139,7 @@ end;
 opaque symbol rewriteTest6 a b : P (((a + b) + a) + a = (a + (a + b)) + a)
 ≔ begin
   assume a b;
-  rewrite [x in (x + _)] addcomm;
+  rewrite .[x in (x + _)] addcomm;
   refine refl nat ((a + (a + b)) + a);
 end;
 
@@ -150,7 +150,7 @@ opaque symbol rewriteTest7 a b c :
  P (((a + b) + c) + (a + b) = ((c + b) + c) + (a + b))
 ≔ begin
   assume a b c;
-  rewrite [in x in (x + c)] (silly_axiom a c);
+  rewrite .[in x in (x + c)] (silly_axiom a c);
   refine refl nat (((c + b) + c) + (a + b));
 end;
 
@@ -159,7 +159,7 @@ opaque symbol rewriteTest8 a b c :
  P (((a + b) + c) + (a + b) = ((c + b) + c) + (a + b))
 ≔ begin
   assume a b c;
-  rewrite [in (_ + c)] (silly_axiom a c);
+  rewrite .[in (_ + c)] (silly_axiom a c);
   refine refl nat (((c + b) + c) + (a + b));
 end;
 
@@ -167,7 +167,7 @@ opaque symbol rewriteTest9 a b c :
   P ((a + b) + (c + (a + b)) = (a + b) + (c + (b + a)))
 ≔ begin
   assume a b c;
-  rewrite [a + _ in x in c + x] addcomm;
+  rewrite .[a + _ in x in c + x] addcomm;
   refine refl nat ((a + b) + (c + (b + a)));
 end;
 
@@ -176,7 +176,7 @@ opaque symbol rewriteTest10 a b c :
      = (c + (b + a)) + ((a + b) + (c + (b + a))))
 ≔ begin
   assume a b c;
-  rewrite [a + _ in x in c + x] addcomm;
+  rewrite .[a + _ in x in c + x] addcomm;
   refine refl nat ((c + (b + a)) + ((a + b) + (c + (b + a))));
 end;
 
@@ -185,7 +185,7 @@ opaque symbol rewriteTest11 a b c :
     = (((a + b) + c) + ((b + a) + c)) + ((a + b) + c))
 ≔ begin
   assume a b c;
-  rewrite [a + _ in x in (_ + x) + _] addcomm;
+  rewrite .[a + _ in x in (_ + x) + _] addcomm;
   refine refl nat ((((a + b) + c) + ((b + a) + c)) + ((a + b) + c));
 end;
 
@@ -194,6 +194,6 @@ opaque symbol rewriteTest12 a b c :
     = (c + (b + a)) + ((a + b) + (c + (b + a))))
 ≔ begin
   assume a b c;
-  rewrite [(a + b) as x in _ + x] addcomm;
+  rewrite .[(a + b) as x in _ + x] addcomm;
   refine refl nat ((c + (b + a)) + ((a + b) + (c + (b + a))));
 end;

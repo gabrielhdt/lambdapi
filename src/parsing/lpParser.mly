@@ -100,14 +100,13 @@
 %token BACKQUOTE
 %token COMMA
 %token COLON
+%token DOT
 %token EQUIV
 %token HOOK_ARROW
 %token LAMBDA
-%token L_CU_BRACKET
 %token L_PAREN
 %token L_SQ_BRACKET
 %token PI
-%token R_CU_BRACKET
 %token R_PAREN
 %token R_SQ_BRACKET
 %token SEMICOLON
@@ -118,7 +117,6 @@
 // identifiers
 
 %token <string> UID
-%token <Syntax.meta_ident> UID_META
 %token <string> UID_PAT
 %token <Path.t> QID
 %token <Path.t> ID_EXPL
@@ -153,7 +151,7 @@ param_id:
 params:
   | x=param_id { ([x], None, false) }
   | L_PAREN xs=param_id+ COLON a=term R_PAREN { (xs, Some(a), false) }
-  | L_CU_BRACKET xs=param_id+ a=preceded(COLON, term)? R_CU_BRACKET
+  | L_SQ_BRACKET xs=param_id+ a=preceded(COLON, term)? R_SQ_BRACKET
     { (xs, a, true) }
 
 rw_patt:
@@ -172,6 +170,8 @@ rw_patt:
     }
   | u=term AS x=uid IN t=term { make_pos $sloc (Rw_TermAsIdInTerm(u,(x,t))) }
 
+rw_patt_spec: DOT L_SQ_BRACKET p=rw_patt R_SQ_BRACKET { p }
+
 tactic:
   | q=query { make_pos $sloc (P_tac_query q) }
   | ADMIT { make_pos $sloc P_tac_admit }
@@ -184,7 +184,7 @@ tactic:
   | INDUCTION { make_pos $sloc P_tac_induction }
   | REFINE t=term { make_pos $sloc (P_tac_refine t) }
   | REFLEXIVITY { make_pos $sloc P_tac_refl }
-  | REWRITE d=ASSOC? p=delimited(L_SQ_BRACKET, rw_patt, R_SQ_BRACKET)? t=term
+  | REWRITE d=ASSOC? p=rw_patt_spec? t=term
     { let b = match d with Some Pratter.Left -> false | _ -> true in
       make_pos $sloc (P_tac_rewrite(b,p,t)) }
   | SIMPLIFY i=id? { make_pos $sloc (P_tac_simpl i) }
@@ -296,18 +296,15 @@ command:
   | q=query SEMICOLON { make_pos $sloc (P_query(q)) }
   | EOF { raise End_of_file }
 
-env: L_SQ_BRACKET ts=separated_list(SEMICOLON, term) R_SQ_BRACKET { ts }
+env: DOT L_SQ_BRACKET ts=separated_list(SEMICOLON, term) R_SQ_BRACKET { ts }
 
 aterm:
   | ti=term_id { ti }
   | WILD { make_pos $sloc P_Wild }
   | TYPE_TERM { make_pos $sloc P_Type }
-  | m=UID_META e=env?
-      { let mid = make_pos $loc(m) m in
-        make_pos $sloc (P_Meta(mid, Option.map Array.of_list e)) }
   | p=patt_id e=env? { make_pos $sloc (P_Patt(p,Option.map Array.of_list e)) }
   | L_PAREN t=term R_PAREN { make_pos $sloc (P_Wrap(t)) }
-  | L_CU_BRACKET t=term R_CU_BRACKET { make_pos $sloc (P_Expl(t)) }
+  | L_SQ_BRACKET t=term R_SQ_BRACKET { make_pos $sloc (P_Expl(t)) }
   | n=INT { make_pos $sloc (P_NLit(n)) }
 
 saterm:

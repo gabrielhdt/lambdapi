@@ -47,7 +47,7 @@ rule nat_ind $p $u $v (s $n) ↪ $v $n (nat_ind $p $u $v $n);
 
 // Leibniz equality.
 
-constant symbol = {a} : T a → T a → Prop;
+constant symbol = [a] : T a → T a → Prop;
 notation = infix 1;
 
 constant symbol refl  : Π a (x:T a), P (x = x);
