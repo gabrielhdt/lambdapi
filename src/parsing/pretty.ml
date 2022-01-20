@@ -26,11 +26,6 @@ let raw_ident : popt -> string pp = fun pos ppf s ->
 
 let ident : p_ident pp = fun ppf {elt=s; pos} -> raw_ident pos ppf s
 
-let meta_ident : p_meta_ident pp = fun ppf {elt; pos} ->
-  match elt with
-  | Name s -> raw_ident pos ppf s
-  | Numb i -> out ppf "%d" i
-
 let param_id : p_ident option pp = fun ppf idopt ->
   match idopt with
   | Some(id) -> out ppf "%a" ident id
@@ -79,7 +74,6 @@ let rec term : p_term pp = fun ppf t ->
     | (P_Iden(qid,false)   , _    ) -> out ppf "%a" qident qid
     | (P_Iden(qid,true )   , _    ) -> out ppf "@%a" qident qid
     | (P_Wild              , _    ) -> out ppf "_"
-    | (P_Meta(mid,ts)      , _    ) -> out ppf "?%a%a" meta_ident mid env ts
     | (P_Patt(None   ,ts)  , _    ) -> out ppf "$_%a" env ts
     | (P_Patt(Some(x),ts)  , _    ) -> out ppf "$%a%a" ident x env ts
     | (P_Appl(t,u)         , `Appl)

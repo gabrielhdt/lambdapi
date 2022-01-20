@@ -276,10 +276,6 @@ and scope_head : mode -> sig_state -> env -> p_term -> tbox =
   | (P_Wild, M_LHS data) -> fresh_patt data None (Env.to_tbox env)
   | (P_Wild, M_Patt) -> _Wild
   | (P_Wild, _) -> _Plac false None
-  | (P_Meta (mid, _), M_Term _) ->
-      let id = match mid.elt with Name s -> s | Numb n -> string_of_int n in
-      _Plac false (Some id)
-  | (P_Meta(_,_), _) -> fatal t.pos "Metavariables are not allowed here."
   | (P_Patt(id,ts), M_Coer reqs) ->
       begin
         match ts with
@@ -448,8 +444,6 @@ let patt_vars : p_term -> (string * int) list * string list =
     | P_Type             -> acc
     | P_Iden(_)          -> acc
     | P_Wild             -> acc
-    | P_Meta(_,None)     -> acc
-    | P_Meta(_,Some ts)  -> Array.fold_left (patt_vars) acc ts
     | P_Patt(id,ts)      -> add_patt acc id ts
     | P_Appl(t,u)        -> patt_vars (patt_vars acc t) u
     | P_Arro(a,b)        -> patt_vars (patt_vars acc a) b

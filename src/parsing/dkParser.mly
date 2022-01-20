@@ -77,7 +77,6 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
           end
       | P_Arro(_,_)       -> fatal h.pos "Implication in legacy pattern."
       | P_LLet(_,_,_,_,_) -> fatal h.pos "Let expression in legacy rule."
-      | P_Meta(_,_)       -> assert false
       | P_Patt(_,_)       -> assert false
       | P_NLit(_)         -> assert false
       | P_Wrap(_)         -> assert false
@@ -163,7 +162,6 @@ let translate_old_rule : old_p_rule -> p_rule = fun r ->
         in
         Pos.make t.pos (P_Abst([([x],a,false)], u))
     | P_Appl(t1,t2)     -> Pos.make t.pos (P_Appl(build env t1, build env t2))
-    | P_Meta(_,_)       -> fatal t.pos "Invalid legacy rule syntax."
     | P_Patt(_,_)       -> fatal h.pos "Pattern in legacy rule."
     | P_LLet(_,_,_,_,_) -> fatal h.pos "Let expression in legacy rule."
     | P_NLit(_)         -> fatal h.pos "Nat literal in legacy rule."
