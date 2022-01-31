@@ -414,15 +414,10 @@ let get_proof_data : compiler -> sig_state -> p_command ->
               if finished ps then
                 ( wrn pe.pos "The proof is finished. Use 'end' instead."; ss )
               else
-                match ps.proof_term with
-                | Some m when opaq ->
-                    (* We admit the initial goal only. *)
-                    Tactic.admit_meta ss m
-                | _ ->
                     (* We admit all the remaining typing goals. *)
                     let admit_goal ss g =
                       match g with
-                      | Unif _ -> ss
+                      | Unif _ -> fatal pos "Cannot admit unification goals."
                       | Typ gt ->
                           let m = gt.goal_meta in
                           match !(m.meta_value) with
