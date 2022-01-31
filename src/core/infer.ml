@@ -85,7 +85,7 @@ functor
         them at the end of type checking. *)
     let unif : ctxt -> term -> term -> unit =
      fun ctx a b ->
-      if not (Eval.eq_modulo ctx a b) then (
+      if not (Eval.pure_eq_modulo ctx a b) then (
         (* NOTE: eq_modulo is used because the unification algorithm counts on
            the fact that no constraint is added in some cases (see test
            "245b.lp"). We may however want to reduce the number of calls to
@@ -102,38 +102,32 @@ functor
         unification fails, we must take care to restore meta-variables as they
         were before unification. *)
 
-    (** [approx ctx a b] is used to tell whether a coercion defined on [b] can
-        be used on [a]. The operation may instantiate meta-variables. *)
-    let approx : ctxt -> term -> term -> bool =
-     fun ctx a b ->
-      Eval.eq_modulo ctx a b
-      ||
-      let tau = Time.save () in
+    let solve1 : ctxt -> term -> term -> bool =
+     fun c a b ->
       if !Debug.log_enabled then
-        log_cion "Approx [@[%a ~@ %a@]]" Print.pp_term a Print.pp_term b;
-      (* First try to solve with all constraints *)
-      match
-        L.solve { empty_problem with to_solve = (ctx, a, b) :: !constraints }
-      with
-      | Some [] ->
-          constraints := [];
-          true
-      | _ -> (
-          Time.restore tau;
-          (* If it fails, try to solve only the new equation *)
-          match L.solve { empty_problem with to_solve = [ (ctx, a, b) ] } with
-          | Some [] -> true
-          | _ -> false)
+        log_cion "Immediately solving [[@%a ~@ %a@]]" Print.pp_term a
+          Print.pp_term b;
+      let before = Time.save () in
+      constraints := (c, a, b) :: !constraints;
+      match L.solve { empty_problem with to_solve = !constraints } with
+      | Some cs ->
+          Eval.pure_eq_modulo c a b
+          &&
+          (if !Debug.log_enabled then log_cion (gre "Partial solving succeeded");
+           constraints := cs;
+           true)
+          ||
+          (if !Debug.log_enabled then log_cion (red "Partial solving failed");
+           Time.restore before;
+           false)
+      | None ->
+          Time.restore before;
+          false
 
     (** [cast c t a b] casts term [t] from type [a] to type [b]. *)
-    let rec cast : ctxt -> term -> term -> term -> term =
+    let rec cast_aux : ctxt -> term -> term -> term -> term =
      fun c t a b ->
-      if Eval.eq_modulo c a b || approx c a b then t
-      else (
-        if !Debug.log_enabled then
-          log_cion "Cast [%a : %a ≡ %a]" Print.pp_term t Print.pp_term a
-            Print.pp_term b;
-        coerce c t a b)
+      if Eval.pure_eq_modulo c a b || solve1 c a b then t else coerce c t a b
 
     (** [coerce ctx t a b] coerces term [t] of type [a] to type [b] when [a] and
         [b] cannot be unified. *)
@@ -174,7 +168,7 @@ functor
               in
               (metas, domain, range)
             in
-            if approx ctx a domain && approx ctx b range then (
+            if solve1 ctx a domain && solve1 ctx b range then (
               unif ctx t metas.(source - 1);
               (* Solve the pre requisites *)
               let f ((s, m, v, w) : Sign.prereq) =
@@ -182,7 +176,7 @@ functor
                 let m, v, w =
                   Bindlib.(msubst m metas, msubst v metas, msubst w metas)
                 in
-                cast ctx m v w
+                cast_aux ctx m v w
               in
               let preq_subst = Array.map f prerequisites in
               (* Inject the solved pre-requisites. *)
@@ -213,13 +207,12 @@ functor
        ...]. *)
 
     (* Wraps the previous function between log messages. *)
-    let cast ctx t a b =
+    let rec cast ctx t a b =
       (if !Debug.log_enabled then
        Print.(log "Cast [%a : %a ≡ %a]" pp_term t pp_term a pp_term b));
-      let r = cast ctx t a b in
+      let r = cast_aux ctx t a b in
       (if !Debug.log_enabled then
-       let eq (ctx, a, b) = Eval.eq_modulo ctx a b in
-       if not (pure_test eq (ctx, t, r)) then
+       if not (Eval.pure_eq_modulo ctx t r) then
          Print.(
            log_cion (gre "Coercion inserted: [%a] to [%a]") pp_term t pp_term r));
       r
@@ -228,7 +221,7 @@ functor
 
     (** [type_enforce ctx a] returns a tuple [(a',s)] where [a'] is refined term
         [a] and [s] is a sort (Type or Kind) such that [a'] is of type [s]. *)
-    let rec type_enforce : ctxt -> term -> term * term =
+    and type_enforce : ctxt -> term -> term * term =
      fun ctx a ->
       if !Debug.log_enabled then log "Type enforce [%a]" Print.pp_term a;
       let a, s = infer ctx a in

@@ -26,4 +26,5 @@ constant symbol f_v [t: Set] [n: El nat]: El (vec n t) → El nat;
 coercion "list2vec" (l: El (list nat)) ⊢ lv l : El (vec (length l) nat) on 1;
 // The range "El (vec (length l) nat)" depends on term "l" that is coerced.
 
+flag "print_implicits" on;
 assert ⊢ f_v (cons z (nil nat)) ≡ f_v (lv (cons z (nil nat)));

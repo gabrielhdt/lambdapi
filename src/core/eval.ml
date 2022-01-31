@@ -158,6 +158,7 @@ and eq_modulo : ctxt -> term -> term -> bool =
           | Appl (t1, u1), Appl (t2, u2) -> eq_modulo ((u1, u2) :: (t1, t2) :: l)
           | Meta (m1, a1), Meta (m2, a2) when m1 == m2 ->
               eq_modulo (if a1 == a2 then l else List.add_array2 a1 a2 l)
+          | Plac _, Plac _ -> eq_modulo l (* HACK this should not be *)
           | _, _ -> raise Exit)
   in
   let res =
@@ -398,6 +399,8 @@ and snf : ctxt -> term -> term =
   | TEnv (_, _) -> assert false
   | Wild -> assert false
   | TRef _ -> assert false
+
+let pure_eq_modulo c a b = pure_test (fun (c, a, b) -> eq_modulo c a b) (c, a, b)
 
 (** [whnf t] computes a weak head-normal form of [t]. *)
 let whnf : ctxt -> term -> term =
