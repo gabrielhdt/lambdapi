@@ -1,9 +1,10 @@
 ; Byte compile for files that are loaded at Emacs' startup
+
 (rule
  (targets lambdapi-site-file.elc)
  (action
   (run %{bin:emacs} --batch --quick --funcall batch-byte-compile
-       %{dep:lambdapi-site-file.el})))
+    %{dep:lambdapi-site-file.el})))
 
 (install
  (section share_root)

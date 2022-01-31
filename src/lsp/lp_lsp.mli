@@ -11,5 +11,4 @@
 (************************************************************************)
 
 val default_log_file : string
-
 val main : bool -> string -> unit

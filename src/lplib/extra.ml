@@ -1,14 +1,14 @@
-(** Functional maps with [int] keys. *)
 module IntMap = Map.Make (Base.Int)
+(** Functional maps with [int] keys. *)
 
-(** Functional sets of integers. *)
 module IntSet = Set.Make (Base.Int)
+(** Functional sets of integers. *)
 
-(** Functional maps with [string] keys. *)
 module StrMap = Map.Make (String)
+(** Functional maps with [string] keys. *)
 
-(** Functional sets of strings. *)
 module StrSet = Set.Make (String)
+(** Functional sets of strings. *)
 
 (** [color] tells whether colors can be used in the output. *)
 let color : bool Stdlib.ref = Stdlib.ref true
@@ -54,8 +54,8 @@ let time : ('a -> 'b) -> 'a -> float * 'b =
   let r = f x in
   (Sys.time () -. t, r)
 
-(** Exception raised by the [with_timeout] function on a timeout. *)
 exception Timeout
+(** Exception raised by the [with_timeout] function on a timeout. *)
 
 (** [with_timeout nbs f x] computes [f x] with a timeout of [nbs] seconds. The
     exception [Timeout] is raised if the computation takes too long, otherwise
@@ -71,8 +71,11 @@ let with_timeout : int -> ('a -> 'b) -> 'a -> 'b =
   try
     let _ = Unix.alarm nbs in
     let res = f x in
-    reset_sigalrm (); res
-  with e -> reset_sigalrm (); raise e
+    reset_sigalrm ();
+    res
+  with e ->
+    reset_sigalrm ();
+    raise e
 
 (** [input_lines ic] reads the input channel [ic] line by line and returns its
     contents. The trailing newlines are removed in lines. The input channel is
@@ -100,28 +103,31 @@ let run_process : string -> string list option =
 
 (** [file_time fname] returns the modification time of file [fname] represented
     as a [float]. [neg_infinity] is returned if the file does not exist. *)
-let file_time : string -> float = fun fname ->
+let file_time : string -> float =
+ fun fname ->
   if Sys.file_exists fname then Unix.((stat fname).st_mtime) else neg_infinity
 
 (** [more_recent source target] checks whether the [target] (produced from the
     [source] file) should be produced again. This is the case when [source] is
     more recent than [target]. *)
-let more_recent : string -> string -> bool = fun source target ->
-  file_time source > file_time target
+let more_recent : string -> string -> bool =
+ fun source target -> file_time source > file_time target
 
 (** [files f d] returns all the filenames in [d] and its sub-directories
-   recursively satisfying the function [f], assuming that [d] is a
-   directory. *)
-let files : (string -> bool) -> string -> string list = fun chk ->
+    recursively satisfying the function [f], assuming that [d] is a directory. *)
+let files : (string -> bool) -> string -> string list =
+ fun chk ->
   let rec files acc dirs =
     match dirs with
     | [] -> acc
-    | d::dirs ->
+    | d :: dirs ->
         let f (fnames, dnames) s =
           let s = Filename.concat d s in
-          if Sys.is_directory s then (fnames, s::dnames)
-          else if chk s then (s::fnames, dnames) else (fnames, dnames)
+          if Sys.is_directory s then (fnames, s :: dnames)
+          else if chk s then (s :: fnames, dnames)
+          else (fnames, dnames)
         in
         let acc, dirs = Array.fold_left f (acc, dirs) (Sys.readdir d) in
         files acc dirs
-  in fun d -> files [] [d]
+  in
+  fun d -> files [] [ d ]

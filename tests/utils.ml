@@ -9,9 +9,9 @@ let _ =
   Library.set_lib_root None;
   match Package.find_config "." with
   | None -> assert false
-  | Some(f) -> Package.apply_config f
+  | Some f -> Package.apply_config f
 
-let compile (fname: string): Sign.t =
+let compile (fname : string) : Sign.t =
   Compile.compile false (Library.path_of_file Parsing.LpLexer.escape fname)
 
 let bool_file = "OK/bool.lp"
@@ -35,7 +35,7 @@ let test_xtc () =
 
 (** Decision tree of regular symbol. *)
 let test_dtree () =
-  let id = Pos.none (["tests";"OK";"bool"],"bool_or") in
+  let id = Pos.none ([ "tests"; "OK"; "bool" ], "bool_or") in
   let sym = Sig_state.find_sym ~prt:true ~prv:true bool_ss id in
   let buf = Buffer.create 16 in
   let fmt = Format.formatter_of_buffer buf in
@@ -54,8 +54,9 @@ let test_dtree_ghost () =
 let _ =
   let open Alcotest in
   run "Utils"
-    [ "hrs", [test_case "bool" `Quick test_hrs]
-    ; "xtc", [test_case "bool" `Quick test_xtc]
-    ; "dtree", [test_case "bool" `Quick test_dtree]
-    ; "dtree_ghost", [test_case "bool" `Quick test_dtree_ghost]
+    [
+      ("hrs", [ test_case "bool" `Quick test_hrs ]);
+      ("xtc", [ test_case "bool" `Quick test_xtc ]);
+      ("dtree", [ test_case "bool" `Quick test_dtree ]);
+      ("dtree_ghost", [ test_case "bool" `Quick test_dtree_ghost ]);
     ]

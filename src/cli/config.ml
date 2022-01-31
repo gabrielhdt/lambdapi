@@ -7,38 +7,42 @@ open Library
 
 (** {3 Configuration type for common values} *)
 
+type config = {
+  gen_obj : bool;
+  lib_root : string option;
+  map_dir : (string * string) list;
+  verbose : int option;
+  no_warnings : bool;
+  debug : string;
+  no_colors : bool;
+  too_long : float;
+  confluence : string option;
+  termination : string option;
+}
 (** Configuration value for the commonly available options. *)
-type config =
-  { gen_obj     : bool
-  ; lib_root    : string option
-  ; map_dir     : (string * string) list
-  ; verbose     : int option
-  ; no_warnings : bool
-  ; debug       : string
-  ; no_colors   : bool
-  ; too_long    : float
-  ; confluence  : string option
-  ; termination : string option }
 
-(** Short synonym of the [config] type. *)
 type t = config
+(** Short synonym of the [config] type. *)
 
 (** Default configuration for commands that do not support all flags. *)
 let default_config =
-  { gen_obj     = false
-  ; lib_root    = None
-  ; map_dir     = []
-  ; verbose     = None
-  ; no_warnings = false
-  ; debug       = ""
-  ; no_colors   = false
-  ; too_long    = infinity
-  ; confluence  = None
-  ; termination = None }
+  {
+    gen_obj = false;
+    lib_root = None;
+    map_dir = [];
+    verbose = None;
+    no_warnings = false;
+    debug = "";
+    no_colors = false;
+    too_long = infinity;
+    confluence = None;
+    termination = None;
+  }
 
 (** [init cfg] runs the necessary initializations according to [cfg]. This has
     to be done prior to any other (non-trivial) task. *)
-let init : config -> unit = fun cfg ->
+let init : config -> unit =
+ fun cfg ->
   (* Set all the flags and configs. *)
   Handle.Compile.gen_obj := cfg.gen_obj;
   Library.set_lib_root cfg.lib_root;
@@ -49,14 +53,12 @@ let init : config -> unit = fun cfg ->
   Extra.color := not cfg.no_colors;
   Handle.Command.too_long := cfg.too_long;
   (* Log some configuration data. *)
-  if Timed.(!Debug.log_enabled) then
-    begin
-      Library.log_lib "running directory: %s" (Filename.current_dir ());
-      Library.log_lib "library root path: %s"
-        (match !lib_root with None -> assert false | Some(p) -> p);
-      let f = Library.log_lib "mapping: %a → %s" Core.Print.pp_path in
-      Library.iter f
-    end;
+  if Timed.(!Debug.log_enabled) then (
+    Library.log_lib "running directory: %s" (Filename.current_dir ());
+    Library.log_lib "library root path: %s"
+      (match !lib_root with None -> assert false | Some p -> p);
+    let f = Library.log_lib "mapping: %a → %s" Core.Print.pp_path in
+    Library.iter f);
   (* Initialise the [Pure] interface (this must come last). *)
   Pure.set_initial_time ()
 
@@ -71,35 +73,35 @@ let gen_obj : bool Term.t =
        then be read during subsequent calls to avoid re-type-checking fo the \
        corresponding source file. Note that an object file is only used when \
        it is up to date (i.e., more recent than the source). If that is not \
-       the case then the outdated file is overwritten." obj_extension
+       the case then the outdated file is overwritten."
+      obj_extension
   in
-  Arg.(value & flag & info ["gen-obj"; "c"] ~doc)
+  Arg.(value & flag & info [ "gen-obj"; "c" ] ~doc)
 
 let lib_root : string option Term.t =
   let doc =
-    "Set the library root to be the directory $(docv). The library root \
-     is a common path under which every module is placed. \
-     It has the same purpose as the root directory \"/\" of Unix systems. \
-     In fact it is possible to \"mount\" directories under the library \
-     root with the \"--map-dir\" option. \
-     Lambdapi uses $(docv) as library root if it is provided, \
-     otherwise it uses $(b,\\$LAMBDAPI_LIB_ROOT/lib/lambdapi/lib_root) \
-     if the environment variable $(b,LAMBDAPI_LIB_ROOT) is set, \
-     then $(b,\\$OPAM_SWITCH_PREFIX/lib/lambdapi/lib_root) \
-     if $(b,OPAM_SWITCH_PREFIX) is set or it uses \
+    "Set the library root to be the directory $(docv). The library root is a \
+     common path under which every module is placed. It has the same purpose \
+     as the root directory \"/\" of Unix systems. In fact it is possible to \
+     \"mount\" directories under the library root with the \"--map-dir\" \
+     option. Lambdapi uses $(docv) as library root if it is provided, \
+     otherwise it uses $(b,\\$LAMBDAPI_LIB_ROOT/lib/lambdapi/lib_root) if the \
+     environment variable $(b,LAMBDAPI_LIB_ROOT) is set, then \
+     $(b,\\$OPAM_SWITCH_PREFIX/lib/lambdapi/lib_root) if \
+     $(b,OPAM_SWITCH_PREFIX) is set or it uses \
      /usr/local/lib/lambdapi/lib_root."
   in
-  Arg.(value & opt (some dir) None & info ["lib-root"] ~docv:"DIR" ~doc)
+  Arg.(value & opt (some dir) None & info [ "lib-root" ] ~docv:"DIR" ~doc)
 
 let map_dir : (string * string) list Term.t =
   let doc =
-    "Map all the modules having MOD as a prefix of their module path to \
-     files under the directory DIR. The corresponding modules under the \
-     library root are then rendered inaccessible. This option is useful \
-     during the development of a library, before it can be installed in the \
-     expected folder under the library root."
+    "Map all the modules having MOD as a prefix of their module path to files \
+     under the directory DIR. The corresponding modules under the library root \
+     are then rendered inaccessible. This option is useful during the \
+     development of a library, before it can be installed in the expected \
+     folder under the library root."
   in
-  let i = Arg.(info ["map-dir"] ~docv:"MOD:DIR" ~doc) in
+  let i = Arg.(info [ "map-dir" ] ~docv:"MOD:DIR" ~doc) in
   Arg.(value & opt_all (pair ~sep:':' string dir) [] & i)
 
 (** Debugging and output options. *)
@@ -111,13 +113,11 @@ let verbose : int option Term.t =
      and more informations being written to standard output. There is no \
      difference between the values of 3 and more."
   in
-  Arg.(value & opt (some int) None & info ["verbose"; "v"] ~docv:"NUM" ~doc)
+  Arg.(value & opt (some int) None & info [ "verbose"; "v" ] ~docv:"NUM" ~doc)
 
 let no_warnings : bool Term.t =
-  let doc =
-    "Disable the printing of all warnings."
-  in
-  Arg.(value & flag & info ["no-warnings"; "w"] ~doc)
+  let doc = "Disable the printing of all warnings." in
+  Arg.(value & flag & info [ "no-warnings"; "w" ] ~doc)
 
 let debug : string Term.t =
   let descs =
@@ -127,9 +127,10 @@ let debug : string Term.t =
   let doc =
     Printf.sprintf
       "Enables the debugging flags specified in $(docv). Every character of \
-       $(docv) correspond to a flag. The available values are %s." descs
+       $(docv) correspond to a flag. The available values are %s."
+      descs
   in
-  Arg.(value & opt string "" & info ["debug"] ~docv:"FLAGS" ~doc)
+  Arg.(value & opt string "" & info [ "debug" ] ~docv:"FLAGS" ~doc)
 
 let no_colors : bool Term.t =
   let doc =
@@ -137,53 +138,62 @@ let no_colors : bool Term.t =
      default behaviour is to rely on ANSI escape sequences in order to make \
      the debugging logs more readable."
   in
-  Arg.(value & flag & info ["no-colors"] ~doc)
+  Arg.(value & flag & info [ "no-colors" ] ~doc)
 
 let too_long : float Term.t =
   let doc =
     "Print a warning every time that a command requires more than $(docv) \
      seconds to execute. The command is not interrupted."
   in
-  Arg.(value & opt float infinity & info ["too-long"] ~docv:"FLOAT" ~doc)
+  Arg.(value & opt float infinity & info [ "too-long" ] ~docv:"FLOAT" ~doc)
 
 (** External checker options. *)
 
 let confluence : string option Term.t =
   let doc =
     "Use the command $(docv) for checking confluence. The command $(docv) \
-     should accept HRS-formatted text on its standard input (For more info \
-     see http://project-coco.uibk.ac.at/problems/hrs.php) \
-     and the first line of its standard output should be either \"YES\", \
-     \"NO\" or \"MAYBE\"."
+     should accept HRS-formatted text on its standard input (For more info see \
+     http://project-coco.uibk.ac.at/problems/hrs.php) and the first line of \
+     its standard output should be either \"YES\", \"NO\" or \"MAYBE\"."
   in
-  Arg.(value & opt (some string) None & info ["confluence"] ~docv:"CMD" ~doc)
+  Arg.(value & opt (some string) None & info [ "confluence" ] ~docv:"CMD" ~doc)
 
 let termination : string option Term.t =
   let doc =
     "Use the command $(docv) for checking termination. The command $(docv) \
-     should accept XTC-formatted text on its standard input (for more info \
-     see https://tinyurl.com/XTC-format), and the first line of its standard \
+     should accept XTC-formatted text on its standard input (for more info see \
+     https://tinyurl.com/XTC-format), and the first line of its standard \
      output should be either \"YES\", \"NO\" or \"MAYBE\"."
   in
-  Arg.(value & opt (some string) None & info ["termination"] ~docv:"CMD" ~doc)
+  Arg.(value & opt (some string) None & info [ "termination" ] ~docv:"CMD" ~doc)
 
 (** Gathering options under a configuration. *)
 
 (** [full] gathers the command line arguments common to most commands. *)
 let full : config Term.t =
-  let fn gen_obj lib_root map_dir verbose no_warnings
-      debug no_colors too_long confluence termination =
-    { gen_obj ; lib_root ; map_dir ; verbose ; no_warnings
-    ; debug ; no_colors ; too_long ; confluence ; termination }
+  let fn gen_obj lib_root map_dir verbose no_warnings debug no_colors too_long
+      confluence termination =
+    {
+      gen_obj;
+      lib_root;
+      map_dir;
+      verbose;
+      no_warnings;
+      debug;
+      no_colors;
+      too_long;
+      confluence;
+      termination;
+    }
   in
   let open Term in
-  const fn $ gen_obj $ lib_root $ map_dir $ verbose
-  $ no_warnings $ debug $ no_colors $ too_long $ confluence $ termination
+  const fn $ gen_obj $ lib_root $ map_dir $ verbose $ no_warnings $ debug
+  $ no_colors $ too_long $ confluence $ termination
 
 (** [minimal] gathers the minimal command line options to enable debugging and
     access to the library root. *)
 let minimal : config Term.t =
   let fn lib_root map_dir verbose debug no_colors =
-    { default_config with lib_root ; map_dir ; verbose ; debug ; no_colors }
+    { default_config with lib_root; map_dir; verbose; debug; no_colors }
   in
   Term.(const fn $ lib_root $ map_dir $ verbose $ debug $ no_colors)

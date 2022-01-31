@@ -19,13 +19,13 @@ module type S = sig
   type point
   type t
 
-  (** [make_point ln col] creates a point with line [ln] and column [col]. *)
   val make_point : int -> int -> point
+  (** [make_point ln col] creates a point with line [ln] and column [col]. *)
 
+  val make_interval : point -> point -> t
   (** [make_interval s e] creates an interval with start [s] and end [e].
       Requires the interval to be well defined (e.g with start < finish) or it
       will assert *)
-  val make_interval : point -> point -> t
 
   val line : point -> int
   val column : point -> int
@@ -42,6 +42,7 @@ module type S = sig
 
   val in_range : point -> t -> cmp
 
+  val compare : t -> t -> int
   (** Comparison over intervals.
 
       An interval is considered "smaller" than another if its ending point is
@@ -51,16 +52,15 @@ module type S = sig
       intervals are considered equal if one is included in the other. In any
       other case, overlapping intervals can't be compared and will throw an
       error. *)
-  val compare : t -> t -> int
 
   val point_to_string : point -> string
   val interval_to_string : t -> string
 
+  val translate : t -> int -> int -> t
   (** [translate i ds df] returns the interval [i] with its starting point
       translated by [ds] and finishing point translated by [df].
 
       Will throw an error if the resulting interval is not well-defined (see
       make_interval). Only translates column-wise, does not modify the line
       coordinates of the extremity points. *)
-  val translate : t -> int -> int -> t
 end

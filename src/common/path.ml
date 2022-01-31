@@ -2,25 +2,22 @@
 
 open Lplib.Base
 
-module Path =
-  struct
-    (** Representation of a module name (roughly, a file path). *)
-    type t = string list
+module Path = struct
+  type t = string list
+  (** Representation of a module name (roughly, a file path). *)
 
-    (** [pp ppf p] prints path [p] on the formatter [ppf]. Remark: to be used
-       in Common only as it does not escape identifiers that need to be
-       escaped. *)
-    let pp : t pp = Lplib.List.pp Format.pp_print_string "."
+  (** [pp ppf p] prints path [p] on the formatter [ppf]. Remark: to be used in
+      Common only as it does not escape identifiers that need to be escaped. *)
+  let pp : t pp = Lplib.List.pp Format.pp_print_string "."
 
-    (** [compare] is a standard comparison function on paths. *)
-    let compare : t cmp = Stdlib.compare
+  (** [compare] is a standard comparison function on paths. *)
+  let compare : t cmp = Stdlib.compare
 
-    (** [of_string s] converts a string [s] lexed as qid into a path. *)
-    let of_string : string -> t = Escape.split '.'
-
-  end
+  (** [of_string s] converts a string [s] lexed as qid into a path. *)
+  let of_string : string -> t = Escape.split '.'
+end
 
 include Path
 
+module Map = Map.Make (Path)
 (** Functional maps with paths as keys. *)
-module Map = Map.Make(Path)

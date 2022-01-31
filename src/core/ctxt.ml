@@ -10,100 +10,96 @@ open Timed
     If [def] is of the form [Some(u)], the context also registers the term [u]
     as the definition of variable [x]. *)
 let unbind : ctxt -> term -> term option -> tbinder -> tvar * term * ctxt =
-  fun ctx a def b ->
-  let (x, t) = Bindlib.unbind b in
+ fun ctx a def b ->
+  let x, t = Bindlib.unbind b in
   (x, t, (x, a, def) :: ctx)
 
-(** {b NOTE} a call to [unbind ctx te def b] always extends context [ctx],
-    even if binder [b] is constant. This is because during typechecking,
-    the context must contain all variables traversed to build appropriate
-    meta-variables. Otherwise, the term [λ a: ?*, λ b: ?*, b] will be
-    transformed to [λ _: ?1, λ b: ?2, b] whereas it should be [λ a: ?1, λ b:
-    ?2[a], b] *)
+(** {b NOTE} a call to [unbind ctx te def b] always extends context [ctx], even
+    if binder [b] is constant. This is because during typechecking, the context
+    must contain all variables traversed to build appropriate meta-variables.
+    Otherwise, the term [λ a: ?*, λ b: ?*, b] will be transformed to
+    [λ _: ?1, λ b: ?2, b] whereas it should be [λ a: ?1, λ b:
+    ?2\[a\], b] *)
 
-(** [type_of x ctx] returns the type of [x] in the context [ctx] when it
-    appears in it, and
-@raise [Not_found] otherwise. *)
-let type_of : tvar -> ctxt -> term = fun x ctx ->
-  let (_,a,_) = List.find (fun (y,_,_) -> Bindlib.eq_vars x y) ctx in a
+(** [type_of x ctx] returns the type of [x] in the context [ctx] when it appears
+    in it, and
+
+    @raise [Not_found] otherwise. *)
+let type_of : tvar -> ctxt -> term =
+ fun x ctx ->
+  let _, a, _ = List.find (fun (y, _, _) -> Bindlib.eq_vars x y) ctx in
+  a
 
 (** [def_of x ctx] returns the definition of [x] in the context [ctx] if it
     appears, and [None] otherwise *)
 let rec def_of : term Bindlib.var -> ctxt -> ctxt * term option =
-  fun x ctx ->
+ fun x ctx ->
   match ctx with
-  | []         -> [], None
-  | (y,_,d)::l -> if Bindlib.eq_vars x y then l,d else def_of x l
+  | [] -> ([], None)
+  | (y, _, d) :: l -> if Bindlib.eq_vars x y then (l, d) else def_of x l
 
 (** [mem x ctx] tells whether variable [x] is mapped in the context [ctx]. *)
-let mem : tvar -> ctxt -> bool = fun x ->
-  List.exists (fun (y,_,_) -> Bindlib.eq_vars x y)
+let mem : tvar -> ctxt -> bool =
+ fun x -> List.exists (fun (y, _, _) -> Bindlib.eq_vars x y)
 
 (** [to_prod ctx t] builds a product by abstracting over the context [ctx], in
     the term [t]. It returns the number of products as well. *)
-let to_prod : ctxt -> term -> term * int = fun ctx t ->
-  let fn (t,c) elt =
+let to_prod : ctxt -> term -> term * int =
+ fun ctx t ->
+  let fn (t, c) elt =
     match elt with
-    | (x,a,None   ) -> (_Prod (lift a) (Bindlib.bind_var x t), c + 1)
-    | (x,a,Some(u)) -> (_LLet (lift a) (lift u) (Bindlib.bind_var x t), c)
+    | x, a, None -> (_Prod (lift a) (Bindlib.bind_var x t), c + 1)
+    | x, a, Some u -> (_LLet (lift a) (lift u) (Bindlib.bind_var x t), c)
   in
-  let (t, c) = List.fold_left fn (lift t, 0) ctx in
+  let t, c = List.fold_left fn (lift t, 0) ctx in
   (Bindlib.unbox t, c)
 
-(** [to_abst ctx t] builds a sequence of abstractions over the context [ctx],
-    in the term [t]. It returns the number of products as well. *)
-let to_abst : ctxt -> term -> term * int = fun ctx t ->
-  let fn (t,c) elt =
+(** [to_abst ctx t] builds a sequence of abstractions over the context [ctx], in
+    the term [t]. It returns the number of products as well. *)
+let to_abst : ctxt -> term -> term * int =
+ fun ctx t ->
+  let fn (t, c) elt =
     match elt with
-    | (x,a,None   ) -> (_Abst (lift a) (Bindlib.bind_var x t), c + 1)
-    | (x,a,Some(u)) -> (_LLet (lift a) (lift u) (Bindlib.bind_var x t), c)
+    | x, a, None -> (_Abst (lift a) (Bindlib.bind_var x t), c + 1)
+    | x, a, Some u -> (_LLet (lift a) (lift u) (Bindlib.bind_var x t), c)
   in
-  let (t, c) = List.fold_left fn (lift t, 0) ctx in
+  let t, c = List.fold_left fn (lift t, 0) ctx in
   (Bindlib.unbox t, c)
 
-(** [sub ctx vs] returns the sub-context of [ctx] made of the variables of
-    [vs]. *)
-let sub : ctxt -> tvar array -> ctxt = fun ctx vs ->
-  let f ((x,_,_) as hyp) ctx =
-    if Array.exists (Bindlib.eq_vars x) vs then hyp::ctx else ctx
+(** [sub ctx vs] returns the sub-context of [ctx] made of the variables of [vs]. *)
+let sub : ctxt -> tvar array -> ctxt =
+ fun ctx vs ->
+  let f ((x, _, _) as hyp) ctx =
+    if Array.exists (Bindlib.eq_vars x) vs then hyp :: ctx else ctx
   in
   List.fold_right f ctx []
 
 (** [unfold ctx t] behaves like {!val:Term.unfold t} unless term[t] is of the
     form [Vari(x)] with [x] defined in [ctx]. In this case, [t] is replaced by
-    the definition of [x] in [ctx].  In particular, if no operation is carried
+    the definition of [x] in [ctx]. In particular, if no operation is carried
     out on [t], we have [unfold ctx t == t]. *)
-let rec unfold : ctxt -> term -> term = fun ctx t ->
+let rec unfold : ctxt -> term -> term =
+ fun ctx t ->
   match t with
-  | Meta(m, ts) ->
-      begin
-        match !(m.meta_value) with
-        | None    -> t
-        | Some(b) -> unfold ctx (Bindlib.msubst b ts)
-      end
-  | TEnv(TE_Some(b), ts) -> unfold ctx (Bindlib.msubst b ts)
-  | TRef(r) ->
-      begin
-        match !r with
-        | None    -> t
-        | Some(v) -> unfold ctx v
-      end
-  | Vari(x) ->
-      begin
-        match def_of x ctx with
-        | _, None -> t
-        | ctx', Some t -> unfold ctx' t
-      end
+  | Meta (m, ts) -> (
+      match !(m.meta_value) with
+      | None -> t
+      | Some b -> unfold ctx (Bindlib.msubst b ts))
+  | TEnv (TE_Some b, ts) -> unfold ctx (Bindlib.msubst b ts)
+  | TRef r -> ( match !r with None -> t | Some v -> unfold ctx v)
+  | Vari x -> (
+      match def_of x ctx with _, None -> t | ctx', Some t -> unfold ctx' t)
   | _ -> t
 
 (** [get_args ctx t] decomposes term [t] as {!val:LibTerm.get_args} does, but
     any variable encountered is replaced by its definition in [ctx] (if it
     exists). *)
-let get_args : ctxt -> term -> term * term list = fun ctx t ->
+let get_args : ctxt -> term -> term * term list =
+ fun ctx t ->
   let rec get_args acc t =
     match unfold ctx t with
-    | Appl(t,u)    -> get_args (u::acc) t
-    | t            -> (t, acc)
+    | Appl (t, u) -> get_args (u :: acc) t
+    | t -> (t, acc)
   in
   get_args [] t
 

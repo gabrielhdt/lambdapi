@@ -1,7 +1,7 @@
-(** Lexer for Lambdapi syntax. Uses Sedlex, a Utf8 friendly lexer. Some helper
-    functions to check if a string conflicts with the syntax are also
-    provided. *)
 open Lplib
+(** Lexer for Lambdapi syntax. Uses Sedlex, a Utf8 friendly lexer. Some helper
+    functions to check if a string conflicts with the syntax are also provided. *)
+
 open Sedlexing
 open Common
 open Pos
@@ -9,7 +9,6 @@ open Pos
 type token =
   (* end of file *)
   | EOF
-
   (* keywords in alphabetical order *)
   | ABORT
   | ADMIT
@@ -68,15 +67,13 @@ type token =
   | VERBOSE
   | WHY3
   | WITH
-
   (* other tokens *)
   | ASSOC of Pratter.associativity
   | DEBUG_FLAGS of (bool * string)
-      (* Tuple constructor (with parens) required by Menhir. *)
+  (* Tuple constructor (with parens) required by Menhir. *)
   | INT of int
   | FLOAT of float
   | STRINGLIT of string
-
   (* symbols *)
   | ASSIGN
   | ARROW
@@ -98,7 +95,6 @@ type token =
   | TURNSTILE
   | VBAR
   | WILD
-
   (* identifiers *)
   | UID of string
   | UID_PAT of string
@@ -116,36 +112,36 @@ let comment = [%sedlex.regexp? "//", Star (Compl ('\n' | '\r'))]
 
 (** Identifiers.
 
-   There are two kinds of identifiers: regular identifiers and escaped
-   identifiers of the form ["{|...|}"].
+    There are two kinds of identifiers: regular identifiers and escaped
+    identifiers of the form ["{|...|}"].
 
-   Modulo those surrounding brackets, escaped identifiers allow to use as
-   identifiers keywords or filenames that are not regular identifiers.
+    Modulo those surrounding brackets, escaped identifiers allow to use as
+    identifiers keywords or filenames that are not regular identifiers.
 
-   An escaped identifier denoting a filename or directory is unescaped before
-   accessing to it. Hence, the module ["{|a b|}"] refers to the file ["a b"].
+    An escaped identifier denoting a filename or directory is unescaped before
+    accessing to it. Hence, the module ["{|a b|}"] refers to the file ["a b"].
 
-   Identifiers need to be normalized so that an escaped identifier, once
-   unescaped, is not regular. To this end, every identifier of the form
-   ["{|s|}"] with s regular, is understood as ["s"] (function uid_of_string
-   below).
+    Identifiers need to be normalized so that an escaped identifier, once
+    unescaped, is not regular. To this end, every identifier of the form
+    ["{|s|}"] with s regular, is understood as ["s"] (function uid_of_string
+    below).
 
-   Finally, identifiers must not be empty, so that we can use the empty string
-   for the path of ghost signatures. *)
+    Finally, identifiers must not be empty, so that we can use the empty string
+    for the path of ghost signatures. *)
 
-(** Unqualified regular identifiers are any non-empty sequence of characters
-   not among: *)
+(** Unqualified regular identifiers are any non-empty sequence of characters not
+    among: *)
 let forbidden_letter = [%sedlex.regexp? Chars " ,;\r\t\n(){}[]:.`\""]
+
 let regid = [%sedlex.regexp? Plus (Compl forbidden_letter)]
 
-let is_regid : string -> bool = fun s ->
+let is_regid : string -> bool =
+ fun s ->
   let lexbuf = Sedlexing.Utf8.from_string s in
-  match%sedlex lexbuf with
-  | regid, eof -> true
-  | _ -> false
+  match%sedlex lexbuf with regid, eof -> true | _ -> false
 
 (** Unqualified escaped identifiers are any non-empty sequence of characters
-   (except "|}") between "{|" and "|}". *)
+    (except "|}") between "{|" and "|}". *)
 let escid =
   [%sedlex.regexp? "{|", Plus (Compl '|' | '|', Compl '}'), Star '|', "|}"]
 
@@ -159,36 +155,39 @@ let qid = [%sedlex.regexp? uid, Plus ('.', uid)]
 let id = [%sedlex.regexp? uid | qid]
 
 (** [escape s] converts a string [s] into an escaped identifier if it is not
-   regular. We do not check whether [s] contains ["|}"]. FIXME? *)
+    regular. We do not check whether [s] contains ["|}"]. FIXME? *)
 let escape s = if is_regid s then s else "{|" ^ s ^ "|}"
 
 (** [uid_of_string s] replaces escaped regular identifiers by their unescape
-   form. *)
-let uid_of_string : string -> string = fun s ->
-  let s' = Escape.unescape s in if is_regid s' then s' else s
+    form. *)
+let uid_of_string : string -> string =
+ fun s ->
+  let s' = Escape.unescape s in
+  if is_regid s' then s' else s
 
-let path_of_string : string -> Path.t = fun s ->
-  List.map uid_of_string (Path.of_string s)
+let path_of_string : string -> Path.t =
+ fun s -> List.map uid_of_string (Path.of_string s)
 
-(** Identifiers not compatible with Bindlib. Because Bindlib converts any
-   suffix consisting of a sequence of digits into an integer, and increment
-   it, we cannot use as bound variable names escaped identifiers or regular
-   identifiers ending with a non-negative integer with leading zeros. *)
-let invalid_bindlib_id = [%sedlex.regexp? escid | (Star any, Plus '0', nat)]
+(** Identifiers not compatible with Bindlib. Because Bindlib converts any suffix
+    consisting of a sequence of digits into an integer, and increment it, we
+    cannot use as bound variable names escaped identifiers or regular
+    identifiers ending with a non-negative integer with leading zeros. *)
+let invalid_bindlib_id = [%sedlex.regexp? escid | Star any, Plus '0', nat]
 
-let is_invalid_bindlib_id : string -> bool = fun s ->
+let is_invalid_bindlib_id : string -> bool =
+ fun s ->
   let lexbuf = Sedlexing.Utf8.from_string s in
-  match%sedlex lexbuf with
-  | invalid_bindlib_id, eof -> true
-  | _ -> false
+  match%sedlex lexbuf with invalid_bindlib_id, eof -> true | _ -> false
 
 (* unit test *)
 let _ =
-  assert (let f = is_invalid_bindlib_id in
-          f "00" && f "01" && f "a01" && f "{|:|}")
+  assert (
+    let f = is_invalid_bindlib_id in
+    f "00" && f "01" && f "a01" && f "{|:|}")
 
 (** [nom buf] eats whitespaces and comments in buffer [buf]. *)
-let rec nom : lexbuf -> unit = fun buf ->
+let rec nom : lexbuf -> unit =
+ fun buf ->
   let rec nom_comment buf =
     match%sedlex buf with
     | eof -> raise (SyntaxError (Pos.none "Unterminated comment."))
@@ -209,84 +208,82 @@ let rec nom : lexbuf -> unit = fun buf ->
 let is_keyword : string -> bool =
   let kws =
     List.sort String.compare
-      [ "abort"
-      ; "admit"
-      ; "admitted"
-      ; "apply"
-      ; "as"
-      ; "assert"
-      ; "assertnot"
-      ; "associative"
-      ; "assume"
-      ; "begin"
-      ; "builtin"
-      ; "coercion"
-      ; "commutative"
-      ; "compute"
-      ; "constant"
-      ; "debug"
-      ; "end"
-      ; "fail"
-      ; "flag"
-      ; "focus"
-      ; "generalize"
-      ; "have"
-      ; "in"
-      ; "induction"
-      ; "inductive"
-      ; "infix"
-      ; "injective"
-      ; "left"
-      ; "let"
-      ; "off"
-      ; "on"
-      ; "opaque"
-      ; "open"
-      ; "prefix"
-      ; "print"
-      ; "private"
-      ; "proofterm"
-      ; "protected"
-      ; "prover"
-      ; "prover_timeout"
-      ; "quantifier"
-      ; "refine"
-      ; "reflexivity"
-      ; "require"
-      ; "rewrite"
-      ; "right"
-      ; "rule"
-      ; "sequential"
-      ; "set"
-      ; "simplify"
-      ; "solve"
-      ; "symbol"
-      ; "symmetry"
-      ; "type"
-      ; "TYPE"
-      ; "unif_rule"
-      ; "verbose"
-      ; "why3"
-      ; "with" ]
+      [
+        "abort";
+        "admit";
+        "admitted";
+        "apply";
+        "as";
+        "assert";
+        "assertnot";
+        "associative";
+        "assume";
+        "begin";
+        "builtin";
+        "coercion";
+        "commutative";
+        "compute";
+        "constant";
+        "debug";
+        "end";
+        "fail";
+        "flag";
+        "focus";
+        "generalize";
+        "have";
+        "in";
+        "induction";
+        "inductive";
+        "infix";
+        "injective";
+        "left";
+        "let";
+        "off";
+        "on";
+        "opaque";
+        "open";
+        "prefix";
+        "print";
+        "private";
+        "proofterm";
+        "protected";
+        "prover";
+        "prover_timeout";
+        "quantifier";
+        "refine";
+        "reflexivity";
+        "require";
+        "rewrite";
+        "right";
+        "rule";
+        "sequential";
+        "set";
+        "simplify";
+        "solve";
+        "symbol";
+        "symmetry";
+        "type";
+        "TYPE";
+        "unif_rule";
+        "verbose";
+        "why3";
+        "with";
+      ]
   in
   fun s ->
-  (* NOTE this function may be optimised using a map, a hashtable, or using
-     [match%sedlex]. *)
+    (* NOTE this function may be optimised using a map, a hashtable, or using
+       [match%sedlex]. *)
     List.mem_sorted String.compare s kws
 
-let tail : lexbuf -> string = fun buf ->
-  Utf8.sub_lexeme buf 1 (lexeme_length buf - 1)
+let tail : lexbuf -> string =
+ fun buf -> Utf8.sub_lexeme buf 1 (lexeme_length buf - 1)
 
 let lexer buf =
   nom buf;
   match%sedlex buf with
-
   (* end of file *)
-
   | eof -> EOF
-
   (* keywords *)
-
   | "abort" -> ABORT
   | "admit" -> ADMIT
   | "admitted" -> ADMITTED
@@ -314,7 +311,7 @@ let lexer buf =
   | "inductive" -> INDUCTIVE
   | "infix" -> INFIX
   | "injective" -> INJECTIVE
-  | "left" -> ASSOC(Pratter.Left)
+  | "left" -> ASSOC Pratter.Left
   | "let" -> LET
   | "notation" -> NOTATION
   | "off" -> OFF
@@ -333,7 +330,7 @@ let lexer buf =
   | "reflexivity" -> REFLEXIVITY
   | "require" -> REQUIRE
   | "rewrite" -> REWRITE
-  | "right" -> ASSOC(Pratter.Right)
+  | "right" -> ASSOC Pratter.Right
   | "rule" -> RULE
   | "sequential" -> SEQUENTIAL
   | "simplify" -> SIMPLIFY
@@ -346,19 +343,15 @@ let lexer buf =
   | "verbose" -> VERBOSE
   | "why3" -> WHY3
   | "with" -> WITH
-
   (* other tokens *)
-
-  | '+', Plus lowercase -> DEBUG_FLAGS(true, tail buf)
-  | '-', Plus lowercase -> DEBUG_FLAGS(false, tail buf)
-  | nat -> INT(int_of_string (Utf8.lexeme buf))
-  | float -> FLOAT(float_of_string (Utf8.lexeme buf))
+  | '+', Plus lowercase -> DEBUG_FLAGS (true, tail buf)
+  | '-', Plus lowercase -> DEBUG_FLAGS (false, tail buf)
+  | nat -> INT (int_of_string (Utf8.lexeme buf))
+  | float -> FLOAT (float_of_string (Utf8.lexeme buf))
   | stringlit ->
       (* Remove the quotes from [lexbuf] *)
-      STRINGLIT(Utf8.sub_lexeme buf 1 (lexeme_length buf - 2))
-
+      STRINGLIT (Utf8.sub_lexeme buf 1 (lexeme_length buf - 2))
   (* symbols *)
-
   | 0x2254 (* ≔ *) -> ASSIGN
   | 0x2192 (* → *) -> ARROW
   | '`' -> BACKQUOTE
@@ -379,23 +372,17 @@ let lexer buf =
   | 0x22a2 (* ⊢ *) -> TURNSTILE
   | '|' -> VBAR
   | '_' -> WILD
-
   (* identifiers *)
-
-  | '$', uid -> UID_PAT(uid_of_string(tail buf))
-
-  | '@', uid -> ID_EXPL[uid_of_string(tail buf)]
-  | '@', qid -> ID_EXPL(path_of_string(tail buf))
-
-  | uid -> UID(uid_of_string(Utf8.lexeme buf))
-  | qid -> QID(path_of_string(Utf8.lexeme buf))
-
+  | '$', uid -> UID_PAT (uid_of_string (tail buf))
+  | '@', uid -> ID_EXPL [ uid_of_string (tail buf) ]
+  | '@', qid -> ID_EXPL (path_of_string (tail buf))
+  | uid -> UID (uid_of_string (Utf8.lexeme buf))
+  | qid -> QID (path_of_string (Utf8.lexeme buf))
   (* invalid token *)
-
   | _ ->
       let loc = locate (lexing_positions buf) in
-      raise (SyntaxError(Pos.make (Some(loc)) (Utf8.lexeme buf)))
+      raise (SyntaxError (Pos.make (Some loc) (Utf8.lexeme buf)))
 
-(** [lexer buf] is a lexing function on buffer [buf] that can be passed to
-    a parser. *)
+(** [lexer buf] is a lexing function on buffer [buf] that can be passed to a
+    parser. *)
 let lexer = with_tokenizer lexer
