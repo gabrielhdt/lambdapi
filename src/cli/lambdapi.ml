@@ -227,48 +227,49 @@ let man_pkg_file =
 
 let check_cmd =
   let doc = "Type-checks the given files." in
-  CLT.(const check_cmd $ Config.full $ timeout $ recompile $ files),
-  CLT.info "check" ~doc ~man:man_pkg_file
+  Cmd.v (Cmd.info "check" ~doc ~man:man_pkg_file)
+    CLT.(const check_cmd $ Config.full $ timeout $ recompile $ files)
 
 let decision_tree_cmd =
   let doc =
     "Prints decision tree of a symbol to standard output using the \
      Dot language. Piping to `dot -Tpng | display' displays the tree."
   in
-  CLT.(const decision_tree_cmd $ Config.full $ qident $ ghost),
-  CLT.info "decision-tree" ~doc ~man:man_pkg_file
+  Cmd.v (Cmd.info "decision-tree" ~doc ~man:man_pkg_file)
+    CLT.(const decision_tree_cmd $ Config.full $ qident $ ghost)
 
 let parse_cmd =
   let doc = "Run the parser on the given files." in
-  CLT.(const parse_cmd $ Config.full $ files),
-  CLT.info "parse" ~doc ~man:man_pkg_file
+  Cmd.v (Cmd.info "parse" ~doc ~man:man_pkg_file)
+    CLT.(const parse_cmd $ Config.full $ files)
+
 
 let export_cmd =
   let doc = "Translate the given files to other formats." in
-  CLT.(const export_cmd $ Config.full $ file),
-  CLT.info "export" ~doc ~man:man_pkg_file
+  Cmd.v (Cmd.info "export" ~doc ~man:man_pkg_file)
+    CLT.(const export_cmd $ Config.full $ file)
 
 let lsp_server_cmd =
   let doc = "Runs the LSP server." in
-  CLT.(const lsp_server_cmd $ Config.full $ standard_lsp $ lsp_log_file),
-  CLT.info "lsp" ~doc ~man:man_pkg_file
+  Cmd.v (Cmd.info "lsp" ~doc ~man:man_pkg_file)
+    CLT.(const lsp_server_cmd $ Config.full $ standard_lsp $ lsp_log_file)
 
 let help_cmd =
   let doc = "Display the main help page for Lambdapi." in
-  CLT.(ret (const (`Help (`Pager, None)))),
-  CLT.info "help" ~doc
+  Cmd.v (Cmd.info "help" ~doc)
+    CLT.(ret (const (`Help (`Pager, None))))
 
 let version_cmd =
   let run () = Console.out 0 "Lambdapi version: %s" Version.version in
   let doc = "Display the current version of Lambdapi." in
-  CLT.(const run $ const ()),
-  CLT.info "version" ~doc
+  Cmd.v (Cmd.info "version" ~doc)
+    CLT.(const run $ const ())
 
-let default_cmd =
+let default_cmd : unit Cmd.t =
   let doc = "A type-checker for the lambdapi-calculus modulo rewriting." in
   let sdocs = Manpage.s_common_options in
-  CLT.(ret (const (`Help (`Pager, None)))),
-  CLT.info "lambdapi" ~version ~doc ~sdocs
+  Cmd.v (Cmd.info "lambdapi" ~version ~doc ~sdocs)
+    CLT.(ret (const (`Help (`Pager, None))))
 
 let _ =
   let t0 = Sys.time () in
@@ -279,4 +280,6 @@ let _ =
     ; decision_tree_cmd ; help_cmd ; version_cmd
     ; Init.cmd ; Install.install_cmd ; Install.uninstall_cmd ]
   in
-  CLT.(exit (eval_choice default_cmd cmds))
+  let default = CLT.(ret (const (`Help (`Pager, None)))) in
+  let info = Cmd.info "lambdapi" in
+  exit (Cmd.eval (Cmd.group info ~default cmds))
