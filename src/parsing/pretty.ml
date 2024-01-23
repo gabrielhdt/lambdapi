@@ -349,7 +349,7 @@ let command : p_command pp = fun ppf { elt; _ } ->
         (Option.pp (unit "@," |+ proof)) p_sym_prf
     end
   | P_unif_rule ur -> out ppf "unif_rule %a" unif_rule ur
-  | P_coercion c -> rule "coercion" ppf c
+  | P_coerce_rule c -> rule "coerce_rule" ppf c
   end;
   out ppf ";"
 

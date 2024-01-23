@@ -75,7 +75,7 @@ let solve1 pb c a b =
 (** {1 Handling coercions} *)
 
 (** [solve_coercions pb c t] traverses term [t] and for each subterm of
-    the form [#c a t b] it tries to [solve1 pb c a b] *)
+    the form [coerce a b t] it tries to [solve1 pb c a b] *)
 let solve_coercions pb c t =
   if Logger.log_enabled () then
     log "Solving coercions of [%a]" term t;
@@ -88,7 +88,7 @@ let solve_coercions pb c t =
     | Patt _, _ -> assert false
     | Plac _, _ -> assert false
     | (Type | Kind | Vari _ | Meta _), _ -> ()
-    | Symb s, [a;_;b] when Coercion.is_coercion s ->
+    | Symb s, [a;b;_] when Coercion.is_coercion s ->
         if not (solve1 pb c a b) then raise Failure
     | Symb _, args -> List.iter solve args
     | (Prod(a,b) | Abst(a,b)), args ->
@@ -100,7 +100,7 @@ let solve_coercions pb c t =
   try solve t; true with Failure -> false
 
 (** [reduce_coercions pb c t] rewrites (in context [c]) subterms of the form
-    [#c a u b] of term [t] to erase the coercion. Metavariables may be
+    [coerce a b u] of term [t] to erase the coercion. Metavariables may be
     generated and added to [pb] *)
 let reduce_coercions pb c t =
   let rec redb cons a b =
@@ -124,7 +124,7 @@ let reduce_coercions pb c t =
         let hd, args = get_args reduct in
         add_args (red hd) (List.map red args)
     | (Vari _ | Meta _ | Symb _) as h, args ->
-        (* Note that [h] may be [#c] here. *)
+        (* Note that [h] may be [coerce] here. *)
         add_args h (List.map red args)
     | Prod(a,b), _ -> redb (fun a b -> mk_Prod(a,b)) a b
     | Abst(a,b), args ->

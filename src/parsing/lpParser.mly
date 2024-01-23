@@ -33,7 +33,7 @@
 %token ASSUME
 %token BEGIN
 %token BUILTIN
-%token COERCION
+%token COERCE_RULE
 %token COMMUTATIVE
 %token COMPUTE
 %token CONSTANT
@@ -157,7 +157,7 @@ command:
   | BUILTIN s=STRINGLIT ASSIGN i=qid SEMICOLON
     { make_pos $loc (P_builtin(s,i)) }
   | UNIF_RULE r=unif_rule SEMICOLON { make_pos $loc (P_unif_rule(r)) }
-  | COERCION r=rule SEMICOLON { make_pos $loc (P_coercion(r)) }
+  | COERCE_RULE r=rule SEMICOLON { make_pos $loc (P_coerce_rule(r)) }
   | NOTATION i=qid n=notation SEMICOLON { make_pos $loc (P_notation(i,n)) }
   | q=query SEMICOLON { make_pos $sloc (P_query(q)) }
   | EOF { raise End_of_file }
